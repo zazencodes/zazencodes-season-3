@@ -1,0 +1,43 @@
+# Project files
+src/dry-run-workflow-for-agent-skills/fs-cleanup-example/example_business_project
+src/dry-run-workflow-for-agent-skills/fs-cleanup-example/vegan_icecream_example_project
+
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+*.pyd
+venv/
+.venv/
+Pipfile.lock
+
+# Ruff cache
+.ruff_cache/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+# Dependency directories
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE/editor folders
+.vscode/
+.idea/
+*.swp
+
+# Miscellaneous
+Thumbs.db
+ehthumbs.db
+.DS_Store
