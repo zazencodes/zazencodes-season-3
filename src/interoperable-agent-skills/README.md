@@ -15,7 +15,8 @@ A practical cross-tool guide to "Agent Skills" in coding agents.
 | Cursor             | `~/.cursor/skills/`                             | `.cursor/skills/`             | slash-command menu                  | Yes               |
 
 
-> [!NOTE] Several tools intentionally support **multiple** repo/system locations for compatibility (for example, Copilot also recognizes `.claude/skills`).
+> [!NOTE]
+> Several tools intentionally support **multiple** repo/system locations for compatibility (for example, Copilot also recognizes `.claude/skills`).
 
 ---
 
