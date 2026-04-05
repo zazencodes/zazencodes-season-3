@@ -9,13 +9,15 @@ A practical cross-tool guide to "Agent Skills" in coding agents.
 | Tool               | System-wide (primary)                            | Repo/workspace (primary)       | Primary invocation                  | Auto-finds skills |
 | ------------------ | ------------------------------------------------ | ------------------------------ | ----------------------------------- | ----------------- |
 | Claude Code        | `~/.claude/skills/`                             | `.claude/skills/`             | `/<skill-name>`                     | Yes               |
+| OpenAI Codex       | `~/.codex/skills/` | `.agents/skills/`             | `/skills` or `$<skill-name>`        | Yes               |
 | GitHub Copilot     | `~/.copilot/skills/`                            | `.github/skills/`             | `/<skill-name>` (or agent auto-use) | Yes               |
-| OpenAI Codex       | `~/.agents/skills/` (and `/etc/codex/skills/`) | `.agents/skills/`             | `/skills` or `$<skill-name>`        | Yes               |
-| Google Antigravity | `~/.gemini/antigravity/skills/`                 | `<workspace>/.agent/skills/` | ask naturally (match description)   | Yes               |
 | Cursor             | `~/.cursor/skills/`                             | `.cursor/skills/`             | slash-command menu                  | Yes               |
+| Google Antigravity | `~/.gemini/antigravity/skills/`                 | `<workspace>/.agent/skills/` | ask naturally (match description)   | Yes               |
 
 
 > [!NOTE] Several tools intentionally support **multiple** repo/system locations for compatibility (for example, Copilot also recognizes `.claude/skills`).
+>
+> [!TIP] Spot-checked against current vendor docs in April 2026 for OpenAI Codex, GitHub Copilot, and Cursor.
 
 ---
 
@@ -46,7 +48,7 @@ Typical layout:
 Example:
 
 ```
-~/.agents/skills/
+~/.<agent>/skills/
   blog-post-writer/
     SKILL.md
     examples/
@@ -90,9 +92,15 @@ Example:
 
 ## OpenAI Codex
 
+> [!NOTE]
+> OpenAI’s current public Codex docs still document `$HOME/.agents/skills` as the user discovery path, while the current Codex app/desktop environment also exposes per-user skills under `~/.codex/skills/`. In practice, it’s worth knowing both conventions.
+
 ### Where skills live
 
-* **System-wide (per-user):**
+* **System-wide (per-user, current Codex app/desktop installs):**
+
+  * `~/.codex/skills/…`
+* **System-wide (per-user, documented discovery path in OpenAI’s Codex docs):**
 
   * `$HOME/.agents/skills/…`
 * **System-wide (admin / machine):**
@@ -100,7 +108,7 @@ Example:
   * `/etc/codex/skills/…`
 * **In-repo / workspace:**
 
-  * `.agents/skills/…` (discovered relative to your working directory / repo root)
+  * `.agents/skills/…` (scanned from your current working directory up to the repo root)
 
 ### How to use skills
 
@@ -109,9 +117,12 @@ Example:
 
 ### Alternate / advanced behaviors
 
-* **Skill authoring helpers:** Codex ships with built-in helpers such as `$skill-creator` (to scaffold a new skill) and `$skill-installer` (to install skills).
-* **Disable implicit invocation but keep explicit invocation:** set `allow_implicit_invocation: false` (Codex still allows explicit `$skill` invocation).
-* **Multi-project setups:** using `.agents/skills` in each repo keeps skills versioned with the codebase.
+* **Progressive loading:** Codex starts with each skill’s metadata and only loads the full `SKILL.md` when it decides to use the skill.
+* **Built-in / bundled skills:** Codex ships with system skills from OpenAI, including helpers such as `$skill-creator`.
+* **Local installs vs distribution:** use `$skill-installer` for curated local installs; use **plugins** when you want to distribute reusable skills and app integrations.
+* **Disable implicit invocation but keep explicit invocation:** set `policy.allow_implicit_invocation: false` in `agents/openai.yaml` (Codex still allows explicit `$skill` invocation).
+* **Per-skill enable/disable:** use `[[skills.config]]` entries in `~/.codex/config.toml` to disable a skill without deleting it.
+* **Discovery details:** Codex supports symlinked skill folders and can discover repo skills from multiple `.agents/skills` directories between `$CWD` and the repo root.
 
 ---
 
@@ -201,4 +212,3 @@ Example:
 * **Skill folder requirements:** the skill directory must include `SKILL.md` as the entrypoint.
 
 ---
-
