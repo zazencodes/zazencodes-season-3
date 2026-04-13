@@ -8,9 +8,9 @@ Cross-platform agent skills reference for coding agents.
 | ------------------ | ------------------------------------------------ | ------------------------------ | ----------------------------------- | ----------------- |
 | Claude Code        | `~/.claude/skills/`                             | `.claude/skills/`             | `/<skill-name>`                     | Yes               |
 | OpenAI Codex       | `~/.codex/skills/` | `.agents/skills/`             | `/skills` or `$<skill-name>`        | Yes               |
-| GitHub Copilot     | `~/.copilot/skills/`                            | `.github/skills/`             | `/<skill-name>` (or agent auto-use) | Yes               |
-| Cursor             | `~/.cursor/skills/`                             | `.cursor/skills/`             | slash-command menu                  | Yes               |
-| Google Antigravity | `~/.gemini/antigravity/skills/`                 | `<workspace>/.agent/skills/` | ask naturally (match description)   | Yes               |
+| GitHub Copilot     | `~/.copilot/skills/`                            | `.github/skills/`             | `/<skill-name>` | Yes               |
+| Cursor             | `~/.cursor/skills/`                             | `.cursor/skills/`             | `/<skill-name>`                  | Yes               |
+| Google Antigravity | `~/.gemini/antigravity/skills/`                 | `<workspace>/.agent/skills/` | `/<skill-name>`   | Yes               |
 
 
 > [!NOTE]
