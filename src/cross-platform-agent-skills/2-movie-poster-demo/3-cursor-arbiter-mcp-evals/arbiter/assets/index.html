@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Arbiter Evals Dashboard</title>
+  <link rel="icon" href="/favicon.ico"/>
+  <!-- Tailwind (runtime CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React 18 + ReactDOM UMD (CDN) -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- react-is (peer dep used by Recharts) -->
+  <script src="https://unpkg.com/react-is@18/umd/react-is.production.min.js"></script>
+  <!-- Recharts UMD (CDN) -->
+  <script src="https://unpkg.com/recharts@3.2.1/umd/Recharts.js"></script>
+  <!-- Babel Standalone to compile JSX in-browser (CDN) -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-neutral-50 text-neutral-900">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const {useRef,useState,useMemo,useEffect} = React;
+    const { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } = Recharts;
+
+    function App(){
+      const [data, setData] = useState(null);
+      const [error, setError] = useState(null);
+      const [modelFilter, setModelFilter] = useState("all");
+      const [queryFilter, setQueryFilter] = useState("");
+      const [selectedFailureIdx, setSelectedFailureIdx] = useState(0);
+
+      useEffect(()=>{ runSelfTests(); },[]);
+
+      // Retain current data loading: auto-fetch /data.json on load
+      useEffect(()=>{
+        (async()=>{
+          try{
+            const res = await fetch('/data.json', { cache: 'no-store' });
+            if(!res.ok) throw new Error('Failed to load /data.json');
+            const json = await res.json();
+            setData(json); setError(null); setSelectedFailureIdx(0);
+          }catch(err){ /* Non-fatal: fall back to manual upload */ }
+        })();
+      },[]);
+
+      // ---------- Derived helpers ----------
+      const results = useMemo(()=> data?.results ?? {}, [data]);
+      const modelKeys = useMemo(()=> Object.keys(results), [results]);
+
+      const perModel = useMemo(()=>{
+        return modelKeys.map(k=>{
+          const r = results[k] || {};
+          const runs = (r.runs ?? []);
+          const s = r.summary ?? {};
+          const judgedRuns = s.judged_runs ?? runs.filter(ru=>ru.judged).length;
+          const passCount = s.pass_count ?? runs.filter(ru=>ru.grade === 'pass').length;
+          const totalRuns = s.total_runs ?? runs.length;
+          const passRate = s.pass_rate ?? (totalRuns ? passCount/totalRuns : 0);
+          const avgLatency = s.avg_latency_s ?? average(runs.map(ru=>ru.latency_s).filter(isNum));
+          const toolUse = s.tool_use ?? {};
+          return {
+            model: k,
+            total_runs: totalRuns,
+            judged_runs: judgedRuns,
+            pass_count: passCount,
+            pass_rate: passRate,
+            avg_latency_s: avgLatency,
+            tool_use: {
+              recall: toolUse.recall ?? undefined,
+              precision: toolUse.precision ?? undefined,
+              false_positive_rate: toolUse.false_positive_rate ?? undefined,
+              expected_total: toolUse.expected_total ?? undefined,
+            },
+          };
+        });
+      },[modelKeys,results]);
+
+      const allRuns = useMemo(()=> modelKeys.flatMap(k => (results[k]?.runs ?? []).map(ru => ({...ru, __model:k}))), [modelKeys, results]);
+
+      const failures = useMemo(()=> {
+        return allRuns
+          .filter(ru => ru.grade === 'fail')
+          .filter(ru => (modelFilter === 'all' ? true : ru.__model === modelFilter))
+          .filter(ru => (queryFilter ? String(ru.query).toLowerCase().includes(queryFilter.toLowerCase()) : true));
+      }, [allRuns, modelFilter, queryFilter]);
+
+      const overall = useMemo(()=>{
+        const s = data?.summary?.overall ?? {};
+        const totalRuns = s.total_runs ?? allRuns.length;
+        const judgedRuns = s.judged_runs ?? allRuns.filter(r=>r.judged).length;
+        const passCount = s.pass_count ?? allRuns.filter(r=>r.grade === 'pass').length;
+        const passRate = s.pass_rate ?? (totalRuns ? passCount/totalRuns : 0);
+        const avgLatency = s.avg_latency_s ?? average(allRuns.map(r=>r.latency_s).filter(isNum));
+        const toolUse = s.tool_use ?? guessToolUseFromRuns(allRuns);
+        const costUsd = s.cost_usd ?? undefined;
+        const tokens = s.tokens ?? undefined;
+        return { totalRuns, judgedRuns, passCount, passRate, avgLatency, toolUse, costUsd, tokens };
+      }, [allRuns, data]);
+
+      const selectedFailure = failures[selectedFailureIdx] ?? null;
+      useEffect(()=>{ if(selectedFailureIdx > failures.length - 1) setSelectedFailureIdx(Math.max(0, failures.length - 1)); }, [failures.length, selectedFailureIdx]);
+
+      function exportFailuresCSV(){
+        const headers = ["model","iteration","query","ground_truth","model_answer","judge_mode","tool_expected","tool_used","tool_calls","latency_s"];
+        const rows = failures.map(f => [
+          f.__model,
+          safe(f.iteration),
+          safe(f.query),
+          safe(f.ground_truth),
+          safe(f.model_answer ?? f.model_raw_response),
+          safe(f.judge_mode),
+          safe(f.tool_expected),
+          safe(f.tool_used),
+          safe((f.tool_calls ?? []).join(';')),
+          safe(f.latency_s),
+        ]);
+        const csv = [headers.join(','), ...rows.map(r => r.map(csvEscape).join(','))].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'arbiter_failures.csv'; a.click(); URL.revokeObjectURL(url);
+      }
+
+      return (
+        <div className="min-h-screen bg-neutral-50 text-neutral-900">
+
+          {/* Content */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+            {!data ? (
+              <EmptyState />
+            ) : (
+              <>
+                <SuiteHeader data={data} />
+
+                {/* KPI cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <KpiCard title="Total Runs" value={fmt(overall.totalRuns)} />
+                  <KpiCard title="Judged Runs" value={fmt(overall.judgedRuns)} />
+                  <KpiCard title="Pass Rate" value={`${(overall.passRate * 100).toFixed(1)}%`} />
+                  <KpiCard title="Avg Latency" value={`${overall.avgLatency?.toFixed(3) ?? "-"} s`} />
+                </div>
+
+                {/* Tool-use metrics (overall) */}
+                {overall.toolUse && (
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <ToolMetricCard label="Recall (Tool Use)" value={overall.toolUse.recall} />
+                    <ToolMetricCard label="Precision (Tool Use)" value={overall.toolUse.precision} />
+                    <ToolMetricCard label="FPR" value={overall.toolUse.false_positive_rate} invert />
+                  </div>
+                )}
+
+                {/* Model comparison charts */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold flex items-center gap-2">Pass Rate by Model</h3>
+                    </div>
+                    <div className="h-64">
+                      <ResponsiveContainer>
+                        <BarChart data={perModel.map(m => ({ name: m.model, pass: (m.pass_rate ?? 0) * 100 }))}>
+                          <XAxis dataKey="name" hide={false} />
+                          <YAxis unit="%" />
+                          <Tooltip formatter={v => `${Number(v).toFixed(1)}%`} />
+                          <Legend />
+                          <Bar dataKey="pass" name="Pass %" radius={[8, 8, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </Card>
+
+                  <Card>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold flex items-center gap-2">Avg Latency by Model</h3>
+                    </div>
+                    <div className="h-64">
+                      <ResponsiveContainer>
+                        <BarChart data={perModel.map(m => ({ name: m.model, latency: m.avg_latency_s ?? 0 }))}>
+                          <XAxis dataKey="name" />
+                          <YAxis unit="s" />
+                          <Tooltip formatter={v => `${Number(v).toFixed(3)} s`} />
+                          <Legend />
+                          <Bar dataKey="latency" name="Avg Latency (s)" radius={[8, 8, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Failure reviewer */}
+                <Card>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold flex items-center gap-2">Failure Reviewer</h3>
+                    <div className="flex items-center gap-2">
+                      <select
+                        className="px-3 py-2 rounded-xl border border-neutral-200 bg-white"
+                        value={modelFilter}
+                        onChange={e=>{ setModelFilter(e.target.value); setSelectedFailureIdx(0); }}
+                      >
+                        <option value="all">All models</option>
+                        {modelKeys.map(k => (
+                          <option key={k} value={k}>{k}</option>
+                        ))}
+                      </select>
+                      <div className="relative">
+                        <input
+                          value={queryFilter}
+                          onChange={e=>{ setQueryFilter(e.target.value); setSelectedFailureIdx(0); }}
+                          placeholder="Filter by query text…"
+                          className="pl-3 pr-3 py-2 rounded-xl border border-neutral-200 bg-white w-64"
+                        />
+                      </div>
+                      <button onClick={exportFailuresCSV} className="px-3 py-2 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50">Export CSV</button>
+                    </div>
+                  </div>
+
+                  {failures.length === 0 ? (
+                    <div className="text-sm text-neutral-500">No failures match your filters.</div>
+                  ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                      {/* Left: list */}
+                      <div className="lg:col-span-1 space-y-2 h-[520px] overflow-auto pr-1">
+                        {failures.map((f,i)=> (
+                          <button
+                            key={`${f.__model}-${i}-${f.query}`}
+                            onClick={()=>setSelectedFailureIdx(i)}
+                            className={`w-full text-left p-3 rounded-2xl border ${i===selectedFailureIdx? 'border-neutral-900 bg-neutral-900/5':'border-neutral-200 bg-white hover:bg-neutral-50'}`}
+                          >
+                            <div className="text-xs text-neutral-500">{f.__model} • iter {f.iteration ?? '-'}</div>
+                            <div className="font-medium line-clamp-1">{f.query}</div>
+                            <div className="text-xs text-neutral-500">Latency {isNum(f.latency_s) ? `${Number(f.latency_s).toFixed(3)}s` : '-'} • Tool {fmtBool(f.tool_used)}</div>
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Right: detail */}
+                      <div className="lg:col-span-2 h-[520px]">
+                        {selectedFailure && (
+                          <div className="rounded-2xl border border-neutral-200 bg-white p-4 space-y-3 h-full flex flex-col min-h-0">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="text-xs text-neutral-500">{selectedFailure.__model} • iter {selectedFailure.iteration ?? '-'}</div>
+                                <div className="font-semibold text-lg">{selectedFailure.query}</div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <NavButton onClick={()=>setSelectedFailureIdx(i=>Math.max(0, i-1))} disabled={selectedFailureIdx===0} icon={'◀'} label="Prev" />
+                                <NavButton onClick={()=>setSelectedFailureIdx(i=>Math.min(failures.length-1, i+1))} disabled={selectedFailureIdx>=failures.length-1} icon={'▶'} label="Next" />
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                              <KeyVal k="Judge mode" v={selectedFailure.judge_mode ?? '-'} />
+                              <KeyVal k="Tool expected" v={fmtBool(selectedFailure.tool_expected)} />
+                              <KeyVal k="Tool used" v={fmtBool(selectedFailure.tool_used)} />
+                              <KeyVal k="Tool calls" v={(selectedFailure.tool_calls ?? []).join(', ') || '-'} />
+                              <KeyVal k="Latency" v={isNum(selectedFailure.latency_s) ? `${Number(selectedFailure.latency_s).toFixed(3)} s` : '-'} />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 min-h-0">
+                              <div className="space-y-1 min-h-0 flex flex-col">
+                                <div className="text-xs font-medium text-neutral-500">Ground truth</div>
+                                <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-sm whitespace-pre-wrap h-0 flex-1 overflow-auto">{String(selectedFailure.ground_truth ?? '—')}</div>
+                              </div>
+                              <div className="space-y-1 min-h-0 flex flex-col">
+                                <div className="text-xs font-medium text-neutral-500">Model answer</div>
+                                <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-sm whitespace-pre-wrap h-0 flex-1 overflow-auto">{String(selectedFailure.model_answer ?? selectedFailure.model_raw_response ?? '—')}</div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </Card>
+
+                {/* Raw JSON viewer */}
+                <Card>
+                  <details>
+                    <summary className="cursor-pointer select-none font-semibold">Raw JSON</summary>
+                    <pre className="mt-3 text-xs overflow-auto max-h-[400px] bg-neutral-900 text-neutral-50 p-3 rounded-xl">{JSON.stringify(data, null, 2)}</pre>
+                  </details>
+                </Card>
+
+                {error && (
+                  <div className="text-sm text-red-600">{error}</div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ---------------- Small components ----------------
+    function EmptyState(){
+      return (
+        <div className="rounded-3xl border border-dashed border-neutral-300 bg-white p-8 flex flex-col items-center text-center gap-3">
+          <div className="rounded-full bg-neutral-100 p-3">⬆️</div>
+          <h2 className="text-xl font-semibold">Upload an Arbiter eval JSON</h2>
+          <p className="text-neutral-600 text-sm max-w-prose">Drop in the <code>eval_YYYYMMDD_HHMMSS.json</code> file produced by <code>arbiter execute</code> to see model summaries, tool-use metrics, and review failures one-by-one.</p>
+          <p className="text-neutral-500 text-xs">(This is a local-only mock; your data stays in the browser.)</p>
+        </div>
+      );
+    }
+
+    function SuiteHeader({ data }){
+      const created = data?.created_at ? new Date(data.created_at) : null;
+      const cfg = data?.config ?? {};
+      const name = cfg.name ?? "—";
+      const judge = cfg.judge_model ?? data?.config?.judge?.model ?? data?.judge_cost_summary?.model ?? "—";
+      const repeats = cfg.repeats ?? "—";
+      const serverKey = Object.keys(cfg.mcp_servers ?? {})[0] ?? "—";
+      return (
+        <Card>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <div className="text-xs text-neutral-500">{created ? created.toLocaleString() : "—"}</div>
+              <h2 className="text-xl font-semibold">{name}</h2>
+              <div className="text-sm text-neutral-600">MCP server: <span className="font-mono">{serverKey}</span> • Repeats: {repeats} • Judge: <span className="font-mono">{judge}</span></div>
+            </div>
+            <div className="flex flex-wrap gap-2 items-center">
+              {(cfg.models ?? data?.summary?.per_model ? Object.keys(data?.summary?.per_model ?? {}) : cfg.models)?.map((m)=> (
+                <span key={m} className="px-2 py-1 rounded-xl bg-neutral-100 text-xs font-mono border border-neutral-200">{m}</span>
+              ))}
+            </div>
+          </div>
+        </Card>
+      );
+    }
+
+    function KpiCard({ title, value }){
+      return (
+        <div className="rounded-2xl border border-neutral-200 bg-white p-4">
+          <div className="text-xs text-neutral-500 flex items-center gap-2">{title}</div>
+          <div className="text-2xl font-semibold mt-1">{value}</div>
+        </div>
+      );
+    }
+
+    function Card({ children }){
+      return <section className="rounded-3xl border border-neutral-200 bg-white p-4">{children}</section>;
+    }
+
+    function ToolMetricCard({ label, value, invert }){
+      const pct = typeof value === 'number' ? Math.max(0, Math.min(1, value)) : undefined;
+      return (
+        <div className="rounded-2xl border border-neutral-200 bg-white p-4">
+          <div className="text-xs text-neutral-500">{label}</div>
+          <div className="mt-2 h-3 bg-neutral-100 rounded-full overflow-hidden">
+            <div className={`${invert ? 'bg-red-500/80' : 'bg-neutral-900'} h-full`} style={{ width: pct !== undefined ? `${pct * 100}%` : '0%' }} />
+          </div>
+          <div className="mt-1 text-sm">{pct !== undefined ? `${(pct * 100).toFixed(1)}%` : '—'}</div>
+        </div>
+      );
+    }
+
+    function NavButton({ onClick, disabled, icon, label }){
+      return (
+        <button onClick={onClick} disabled={disabled} className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border ${disabled ? 'bg-neutral-100 text-neutral-400 border-neutral-200' : 'bg-white hover:bg-neutral-50 border-neutral-200'}`}>
+          {icon} {label}
+        </button>
+      );
+    }
+
+    function KeyVal({ k, v }){
+      return (
+        <div className="rounded-xl border border-neutral-200 bg-white p-3">
+          <div className="text-xs text-neutral-500">{k}</div>
+          <div className="text-sm font-medium break-words">{String(v)}</div>
+        </div>
+      );
+    }
+
+    // ---------------- Utilities ----------------
+    function fmt(n){ if(n===undefined||n===null) return '—'; if(typeof n==='number') return new Intl.NumberFormat().format(n); return String(n); }
+    function isNum(v){ return typeof v==='number' && isFinite(v); }
+    function average(arr){ if(!arr.length) return undefined; return arr.reduce((a,b)=>a+b,0)/arr.length; }
+    function fmtBool(v){ if(v===true) return 'yes'; if(v===false) return 'no'; return '—'; }
+    function safe(v){ if(v===undefined||v===null) return ''; if(typeof v==='string') return v.replaceAll('\n',' '); return String(v); }
+    function csvEscape(s){ const v = String(s??''); if(v.includes(',')||v.includes('\n')||v.includes('"')){ return '"'+v.replaceAll('"','""')+'"'; } return v; }
+    function guessToolUseFromRuns(runs){
+      const expected = runs.filter(r=>r.tool_expected).length;
+      const usedWhenExpected = runs.filter(r=>r.tool_expected && r.tool_used).length;
+      const totalUsed = runs.filter(r=>r.tool_used).length;
+      const usedWhenNotExpected = runs.filter(r=>!r.tool_expected && r.tool_used).length;
+      const precision = totalUsed ? usedWhenExpected/totalUsed : undefined;
+      const recall = expected ? usedWhenExpected/expected : undefined;
+      const falsePositiveRate = (runs.filter(r=>!r.tool_expected).length||0) ? usedWhenNotExpected / runs.filter(r=>!r.tool_expected).length : undefined;
+      return { expected_total: expected, used_when_expected: usedWhenExpected, total_used: totalUsed, used_when_not_expected: usedWhenNotExpected, precision, recall, false_positive_rate: falsePositiveRate };
+    }
+
+    // ---------------- Lightweight self-tests ----------------
+    function runSelfTests(){
+      try{
+        console.groupCollapsed('ArbiterEvalsDashboard self-tests');
+        console.assert(average([1,2,3]) === 2, 'average([1,2,3]) should be 2');
+        console.assert(average([]) === undefined, 'average([]) should be undefined');
+        console.assert(csvEscape('a,b') === '"a,b"', 'csvEscape should quote commas');
+        console.assert(csvEscape('He said "hi"') === '"He said ""hi"""', 'csvEscape should double quotes');
+        const g = guessToolUseFromRuns([
+          { tool_expected:true, tool_used:true },
+          { tool_expected:true, tool_used:false },
+          { tool_expected:false, tool_used:false },
+          { tool_expected:false, tool_used:true },
+        ]);
+        console.assert(Math.abs((g.recall ?? 0) - 0.5) < 1e-9, 'recall should be 0.5');
+        console.assert(Math.abs((g.precision ?? 0) - 0.5) < 1e-9, 'precision should be 0.5');
+        console.assert(Math.abs((g.false_positive_rate ?? 0) - 0.5) < 1e-9, 'fpr should be 0.5');
+        console.groupEnd();
+      }catch(e){ console.warn('Self-tests encountered an error:', e); }
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>
+
+

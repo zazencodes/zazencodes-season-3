@@ -1,0 +1,41 @@
+{
+  "name": "Unit Converter MCP Evals Suite",
+  "models": [
+    "anthropic:claude-3-5-haiku-latest",
+    "openai:gpt-5-nano",
+    "google:gemini-2.5-flash"
+  ],
+  "judge": {
+    "model": "openai:gpt-5-nano",
+    "max_tokens": 1000
+  },
+  "repeats": 3,
+  "mcp_servers": {
+    "unit-converter-mcp": {
+      "command": "uvx",
+      "args": [
+        "unit-converter-mcp"
+      ],
+      "transport": "stdio"
+    }
+  },
+  "tool_use_evals": [
+    {
+      "query": "convert 0 celsius to fahrenheit",
+      "answer": "32 Fahrenheit",
+      "judge_mode": "llm"
+    },
+    {
+      "query": "convert 8 radians to degrees",
+      "answer": "458.366236",
+      "judge_mode": "contains"
+    }
+  ],
+  "abstention_evals": [
+    {
+      "query": "who is the Pascal unit named after?"
+    }
+  ]
+}
+
+
