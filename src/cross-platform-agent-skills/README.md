@@ -10,7 +10,7 @@ Cross-platform agent skills reference for coding agents.
 | OpenAI Codex       | `~/.codex/skills/` | `.agents/skills/`             | `/skills` or `$<skill-name>`        | Yes               |
 | GitHub Copilot     | `~/.copilot/skills/`                            | `.github/skills/`             | `/<skill-name>` | Yes               |
 | Cursor             | `~/.cursor/skills/`                             | `.cursor/skills/`             | `/<skill-name>`                  | Yes               |
-| Google Antigravity | `~/.gemini/antigravity/skills/`                 | `<workspace>/.agent/skills/` | `/<skill-name>`   | Yes               |
+| Google Antigravity | `~/.gemini/antigravity/skills/`                 | `.agent/skills/` | `/<skill-name>`   | Yes               |
 
 
 > [!NOTE]
