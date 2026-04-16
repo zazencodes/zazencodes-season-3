@@ -1,0 +1,4 @@
+interface:
+  display_name: "Init AGENTS.md"
+  short_description: "Initialize a lean AGENTS.md context file for the current project"
+  default_prompt: "Use $init-agents-md to create a minimal AGENTS.md for this repository and align CLAUDE.md to it."
