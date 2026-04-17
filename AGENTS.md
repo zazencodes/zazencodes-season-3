@@ -5,6 +5,7 @@
 - `README.md` is the public landing page for this repo and should stay simple.
 - Only include top-level folders from `src/` that already have matching published video content in `/Users/alex/pro/zazencodes-content/videos`.
 - Do not include unpublished folders in `README.md`.
+- Keep the `README.md` video index in reverse chronological order so the newest published videos appear first.
 - When asked to "Update the README", assume existing README entries are still correct. Only check new `src/` folders that are not already linked in `README.md`.
 
 ## Repo Shape
@@ -24,7 +25,7 @@
   - YouTube URL from `info.json`
   - optional short description from the folder README or local `summary.md`
 - If the match is unclear, run a targeted web or YouTube search to confirm before editing `README.md`.
-- Keep the video index in chronological order based on the matching local video folders.
+- Keep the video index in reverse chronological order based on the matching local video folders.
 - Do not re-check or rewrite existing video rows unless the user explicitly asks.
 
 ## Validation
@@ -32,4 +33,3 @@
 - Re-read `README.md` after editing and make sure every row links to the correct `src/<folder>`.
 - Confirm every README video row corresponds to a real local content entry in `/Users/alex/pro/zazencodes-content/videos`.
 - If a folder has no published local content yet, leave it out of the README.
-
