@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAWBAR — Vegan Protein Bars</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --soil:    #120e07;
+      --earth:   #1e1508;
+      --bark:    #2e2010;
+      --clay:    #5a3e1b;
+      --sand:    #c8a97a;
+      --cream:   #f0e6cc;
+      --lime:    #b8e829;
+      --lime-dim:#8cb818;
+      --white:   #faf6ed;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background-color: var(--soil);
+      color: var(--cream);
+      font-family: 'EB Garamond', Georgia, serif;
+      font-size: 18px;
+      line-height: 1.6;
+      cursor: crosshair;
+      overflow-x: hidden;
+    }
+
+    /* ── grain overlay ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0.35;
+    }
+
+    /* ── nav ── */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.4rem 3rem;
+      background: linear-gradient(to bottom, rgba(18,14,7,0.95) 60%, transparent);
+    }
+
+    .nav-logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem;
+      letter-spacing: 0.12em;
+      color: var(--lime);
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2.5rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 0.85rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--sand);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--lime); }
+
+    .nav-cta {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 0.95rem;
+      letter-spacing: 0.14em;
+      background: var(--lime);
+      color: var(--soil);
+      border: none;
+      padding: 0.55rem 1.6rem;
+      cursor: crosshair;
+      transition: background 0.2s, transform 0.15s;
+    }
+
+    .nav-cta:hover { background: var(--white); transform: translateY(-1px); }
+
+    /* ── hero ── */
+    .hero {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      padding: 8rem 3rem 4rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      top: -20%;
+      right: -10%;
+      width: 60vw;
+      height: 120vh;
+      background: radial-gradient(ellipse at 60% 40%, rgba(184,232,41,0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-text { position: relative; z-index: 2; }
+
+    .hero-eyebrow {
+      display: inline-block;
+      font-size: 0.78rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--lime);
+      border-left: 2px solid var(--lime);
+      padding-left: 0.8rem;
+      margin-bottom: 1.8rem;
+      opacity: 0;
+      animation: fadeUp 0.7s ease forwards;
+      animation-delay: 0.1s;
+    }
+
+    .hero-headline {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(5rem, 10vw, 9.5rem);
+      line-height: 0.92;
+      letter-spacing: 0.01em;
+      color: var(--white);
+      margin-bottom: 2rem;
+      opacity: 0;
+      animation: fadeUp 0.7s ease forwards;
+      animation-delay: 0.25s;
+    }
+
+    .hero-headline em {
+      font-style: normal;
+      color: var(--lime);
+    }
+
+    .hero-sub {
+      font-size: 1.15rem;
+      font-style: italic;
+      color: var(--sand);
+      max-width: 32ch;
+      margin-bottom: 3rem;
+      opacity: 0;
+      animation: fadeUp 0.7s ease forwards;
+      animation-delay: 0.45s;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      opacity: 0;
+      animation: fadeUp 0.7s ease forwards;
+      animation-delay: 0.6s;
+    }
+
+    .btn-primary {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.1rem;
+      letter-spacing: 0.16em;
+      background: var(--lime);
+      color: var(--soil);
+      border: none;
+      padding: 1rem 2.8rem;
+      cursor: crosshair;
+      position: relative;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 2px solid var(--lime);
+      transform: translate(5px, 5px);
+      transition: transform 0.2s;
+    }
+
+    .btn-primary:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 6px 6px 0 var(--lime-dim);
+    }
+
+    .btn-primary:hover::after { transform: translate(7px, 7px); }
+
+    .hero-stat {
+      font-size: 0.8rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--clay);
+    }
+
+    .hero-stat strong {
+      display: block;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.5rem;
+      color: var(--cream);
+      letter-spacing: 0.05em;
+      line-height: 1;
+    }
+
+    /* hero visual */
+    .hero-visual {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 70vh;
+      opacity: 0;
+      animation: fadeIn 1s ease forwards;
+      animation-delay: 0.7s;
+    }
+
+    .bar-showcase {
+      position: relative;
+      width: 280px;
+      height: 380px;
+    }
+
+    .bar-card-large {
+      width: 100%;
+      height: 100%;
+      background: var(--bark);
+      border: 1px solid rgba(184,232,41,0.15);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .bar-card-large::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--lime);
+    }
+
+    .bar-emoji-large {
+      font-size: 5rem;
+      margin-bottom: 1.5rem;
+      display: block;
+      filter: saturate(1.3);
+    }
+
+    .bar-tag {
+      font-size: 0.72rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--lime);
+      margin-bottom: 0.5rem;
+    }
+
+    .bar-name-large {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.8rem;
+      letter-spacing: 0.08em;
+      color: var(--white);
+      text-align: center;
+      line-height: 1.1;
+    }
+
+    .floating-pill {
+      position: absolute;
+      background: var(--lime);
+      color: var(--soil);
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+      padding: 0.35rem 0.9rem;
+    }
+
+    .pill-1 { top: -12px; right: -30px; animation: float1 4s ease-in-out infinite; }
+    .pill-2 { bottom: 40px; left: -45px; animation: float2 5s ease-in-out infinite; }
+    .pill-3 { top: 80px; left: -50px; animation: float1 3.5s ease-in-out infinite 1s; background: var(--sand); color: var(--soil); }
+
+    @keyframes float1 {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+
+    @keyframes float2 {
+      0%, 100% { transform: translateY(0px) rotate(-2deg); }
+      50% { transform: translateY(-8px) rotate(0deg); }
+    }
+
+    /* ── section shared ── */
+    section { padding: 6rem 3rem; }
+
+    .section-label {
+      font-size: 0.75rem;
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+      color: var(--lime);
+      margin-bottom: 1rem;
+    }
+
+    /* ── waitlist ── */
+    .waitlist {
+      background: var(--bark);
+    }
+
+    .waitlist-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+      gap: 3rem;
+      align-items: center;
+    }
+
+    .waitlist-copy .section-label {
+      margin-bottom: 1.2rem;
+    }
+
+    .waitlist-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(3rem, 6vw, 4.5rem);
+      line-height: 0.95;
+      letter-spacing: 0.03em;
+      color: var(--white);
+      margin-bottom: 1rem;
+    }
+
+    .waitlist-body {
+      max-width: 34ch;
+      font-size: 1.05rem;
+      font-style: italic;
+      color: var(--sand);
+    }
+
+    .waitlist-card {
+      border: 1px solid rgba(240, 230, 204, 0.22);
+      background: linear-gradient(180deg, rgba(18, 14, 7, 0.32), rgba(18, 14, 7, 0.12));
+      padding: 2rem;
+    }
+
+    .waitlist-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+    }
+
+    .waitlist-input {
+      width: 100%;
+      min-height: 58px;
+      border: 1px solid rgba(240, 230, 204, 0.65);
+      background: var(--soil);
+      color: var(--cream);
+      font: inherit;
+      padding: 0.95rem 1rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .waitlist-input::placeholder {
+      color: rgba(240, 230, 204, 0.72);
+    }
+
+    .waitlist-input:focus {
+      border-color: var(--lime);
+      box-shadow: 0 0 0 3px rgba(184, 232, 41, 0.12);
+    }
+
+    .waitlist-form .btn-primary {
+      width: 100%;
+    }
+
+    .waitlist-note {
+      font-size: 0.8rem;
+      color: var(--clay);
+    }
+
+    .waitlist-success {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.8rem;
+      letter-spacing: 0.08em;
+      color: var(--lime);
+      text-align: center;
+      padding: 1.1rem 1rem;
+      border: 1px solid rgba(184, 232, 41, 0.28);
+      background: rgba(18, 14, 7, 0.28);
+    }
+
+    /* ── ticker ── */
+    .ticker {
+      background: var(--lime);
+      padding: 0.7rem 0;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .ticker-inner {
+      display: inline-flex;
+      gap: 0;
+      animation: ticker 18s linear infinite;
+    }
+
+    .ticker-item {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1rem;
+      letter-spacing: 0.15em;
+      color: var(--soil);
+      padding: 0 2rem;
+    }
+
+    .ticker-dot {
+      color: var(--bark);
+      padding: 0 0.5rem;
+    }
+
+    @keyframes ticker {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+
+    /* ── products ── */
+    .products { background: var(--earth); }
+
+    .products-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 4rem;
+    }
+
+    .products-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(3rem, 6vw, 5.5rem);
+      line-height: 0.95;
+      letter-spacing: 0.02em;
+    }
+
+    .products-subtitle {
+      font-style: italic;
+      color: var(--sand);
+      max-width: 22ch;
+      text-align: right;
+    }
+
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5px;
+    }
+
+    .product-card {
+      background: var(--bark);
+      padding: 2.5rem 2rem;
+      position: relative;
+      overflow: hidden;
+      cursor: crosshair;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .product-card::before {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 0;
+      background: var(--lime);
+      transition: height 0.3s ease;
+      z-index: 0;
+    }
+
+    .product-card:hover { transform: translateY(-6px); }
+    .product-card:hover::before { height: 3px; }
+
+    .product-card > * { position: relative; z-index: 1; }
+
+    .product-emoji {
+      font-size: 3.5rem;
+      display: block;
+      margin-bottom: 1.5rem;
+    }
+
+    .product-flavor {
+      font-size: 0.7rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--lime);
+      margin-bottom: 0.4rem;
+    }
+
+    .product-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.7rem;
+      letter-spacing: 0.06em;
+      color: var(--white);
+      line-height: 1.1;
+      margin-bottom: 0.8rem;
+    }
+
+    .product-desc {
+      font-size: 0.9rem;
+      font-style: italic;
+      color: var(--sand);
+      line-height: 1.5;
+      margin-bottom: 1.8rem;
+    }
+
+    .product-stats {
+      display: flex;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat {
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--clay);
+    }
+
+    .stat strong {
+      display: block;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem;
+      letter-spacing: 0.05em;
+      color: var(--cream);
+      line-height: 1;
+    }
+
+    .product-price-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .product-price {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem;
+      letter-spacing: 0.08em;
+      color: var(--white);
+    }
+
+    .add-btn {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 0.85rem;
+      letter-spacing: 0.18em;
+      background: transparent;
+      border: 1px solid var(--clay);
+      color: var(--cream);
+      padding: 0.45rem 1.2rem;
+      cursor: crosshair;
+      transition: all 0.2s;
+    }
+
+    .add-btn:hover {
+      background: var(--lime);
+      border-color: var(--lime);
+      color: var(--soil);
+    }
+
+    /* ── why section ── */
+    .why {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6rem;
+      align-items: center;
+    }
+
+    .why-headline {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(3rem, 5vw, 4.5rem);
+      line-height: 0.95;
+      margin-bottom: 2rem;
+    }
+
+    .why-headline em {
+      font-style: normal;
+      color: var(--lime);
+    }
+
+    .why-body {
+      font-size: 1.05rem;
+      color: var(--sand);
+      line-height: 1.75;
+      margin-bottom: 2.5rem;
+      font-style: italic;
+    }
+
+    .why-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .why-list li {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-size: 0.95rem;
+      letter-spacing: 0.04em;
+    }
+
+    .why-list li::before {
+      content: '✦';
+      color: var(--lime);
+      font-size: 0.75rem;
+      flex-shrink: 0;
+    }
+
+    .why-visual {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5px;
+    }
+
+    .why-box {
+      background: var(--bark);
+      padding: 2.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+
+    .why-box:nth-child(2) { margin-top: 3rem; }
+    .why-box:nth-child(3) { margin-top: -3rem; }
+
+    .why-box-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .why-box-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.3rem;
+      letter-spacing: 0.08em;
+      color: var(--white);
+      margin-bottom: 0.4rem;
+    }
+
+    .why-box-text {
+      font-size: 0.85rem;
+      color: var(--sand);
+      font-style: italic;
+    }
+
+    /* ── testimonials ── */
+    .testimonials { background: var(--bark); }
+
+    .testimonials-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      letter-spacing: 0.04em;
+      margin-bottom: 3rem;
+    }
+
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5px;
+    }
+
+    .testimonial {
+      background: var(--earth);
+      padding: 2.5rem;
+      position: relative;
+    }
+
+    .testimonial::before {
+      content: '"';
+      font-family: 'EB Garamond', serif;
+      font-size: 6rem;
+      color: var(--lime);
+      opacity: 0.2;
+      position: absolute;
+      top: 0.5rem;
+      left: 1.5rem;
+      line-height: 1;
+    }
+
+    .testimonial-text {
+      font-size: 1.05rem;
+      font-style: italic;
+      color: var(--sand);
+      line-height: 1.7;
+      margin-bottom: 1.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .testimonial-author {
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--clay);
+    }
+
+    .testimonial-author strong {
+      color: var(--cream);
+      display: block;
+    }
+
+    /* ── CTA banner ── */
+    .cta-banner {
+      background: var(--lime);
+      padding: 5rem 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 3rem;
+    }
+
+    .cta-banner-text {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2.5rem, 5vw, 4.5rem);
+      line-height: 0.95;
+      color: var(--soil);
+      letter-spacing: 0.02em;
+    }
+
+    .cta-banner-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 1rem;
+      flex-shrink: 0;
+    }
+
+    .btn-dark {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.1rem;
+      letter-spacing: 0.16em;
+      background: var(--soil);
+      color: var(--lime);
+      border: none;
+      padding: 1rem 2.8rem;
+      cursor: crosshair;
+      transition: background 0.2s, transform 0.15s;
+    }
+
+    .btn-dark:hover { background: var(--bark); transform: translateY(-2px); }
+
+    .cta-note {
+      font-size: 0.8rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--bark);
+    }
+
+    /* ── footer ── */
+    footer {
+      background: var(--soil);
+      padding: 3rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--bark);
+    }
+
+    .footer-logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.5rem;
+      letter-spacing: 0.12em;
+      color: var(--lime);
+    }
+
+    .footer-copy {
+      font-size: 0.8rem;
+      letter-spacing: 0.12em;
+      color: var(--clay);
+      text-align: center;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .footer-links a {
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--clay);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--lime); }
+
+    /* ── animations ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    /* ── responsive ── */
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; padding-top: 9rem; }
+      .hero-visual { height: 40vh; }
+      .waitlist-shell { grid-template-columns: 1fr; }
+      .products-grid { grid-template-columns: repeat(2, 1fr); }
+      .why { grid-template-columns: 1fr; gap: 3rem; }
+      .testimonials-grid { grid-template-columns: 1fr; }
+      .products-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+      .products-subtitle { text-align: left; }
+      .cta-banner { flex-direction: column; align-items: flex-start; }
+      .cta-banner-actions { align-items: flex-start; }
+      footer { flex-direction: column; gap: 1.5rem; text-align: center; }
+      nav { padding: 1rem 1.5rem; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="#" class="nav-logo">RAWBAR</a>
+    <ul class="nav-links">
+      <li><a href="#products">Bars</a></li>
+      <li><a href="#why">Why Raw</a></li>
+      <li><a href="#reviews">Reviews</a></li>
+    </ul>
+    <button class="nav-cta">Shop Now</button>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-text">
+      <span class="hero-eyebrow">100% Plant-Based · Zero Compromise</span>
+      <h1 class="hero-headline">
+        FUEL<br>
+        FROM THE<br>
+        <em>EARTH.</em>
+      </h1>
+      <p class="hero-sub">
+        High-protein vegan bars crafted with whole ingredients. Nothing artificial. Nothing held back.
+      </p>
+      <div class="hero-actions">
+        <button class="btn-primary">Shop All Bars</button>
+        <div class="hero-stat">
+          <strong>25g</strong>
+          plant protein
+        </div>
+        <div class="hero-stat">
+          <strong>4</strong>
+          bold flavors
+        </div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="bar-showcase">
+        <div class="bar-card-large">
+          <span class="bar-emoji-large">🍫</span>
+          <span class="bar-tag">Featured</span>
+          <h2 class="bar-name-large">Dark Cacao<br>Hazelnut</h2>
+        </div>
+        <div class="floating-pill pill-1">25g PROTEIN</div>
+        <div class="floating-pill pill-2">VEGAN ✦</div>
+        <div class="floating-pill pill-3">NO SOY</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WAITLIST -->
+  <section class="waitlist" id="waitlist">
+    <div class="waitlist-shell">
+      <div class="waitlist-copy">
+        <p class="section-label">Join The Waitlist</p>
+        <h2 class="waitlist-title">BE THE FIRST TO KNOW</h2>
+        <p class="waitlist-body">
+          Drop your email and we'll tell you the moment Rawbar is ready to ship.
+        </p>
+      </div>
+      <div class="waitlist-card">
+        <form class="waitlist-form" action="YOUR_MAILCHIMP_URL_HERE" method="post">
+          <input
+            class="waitlist-input"
+            type="email"
+            name="email"
+            placeholder="Your email address"
+            autocomplete="email"
+            required
+          />
+          <button class="btn-primary" type="submit">NOTIFY ME</button>
+          <p class="waitlist-note">No spam. Unsubscribe anytime.</p>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- TICKER -->
+  <div class="ticker" aria-hidden="true">
+    <div class="ticker-inner">
+      <!-- duplicated for seamless loop -->
+      <span class="ticker-item">25g Plant Protein</span><span class="ticker-dot">✦</span>
+      <span class="ticker-item">No Artificial Sweeteners</span><span class="ticker-dot">✦</span>
+      <span class="ticker-item">Gluten Free</span><span class="ticker-dot">✦</span>
+      <span class="ticker-item">Cold Pressed</span><span class="ticker-dot">✦</span>
+      <span class="ticker-item">Non-GMO Certified</span><span class="ticker-dot">✦</span>
+      <span class="ticker-item">Soy Free</span><span class="ticker-dot">✦</span>
+      <span class="ticker-item">25g Plant Protein</span><span class="ticker-dot">✦</span>
+      <span class="ticker-item">No Artificial Sweeteners</span><span class="ticker-dot">✦</span>
+      <span class="ticker-item">Gluten Free</span><span class="ticker-dot">✦</span>
+      <span class="ticker-item">Cold Pressed</span><span class="ticker-dot">✦</span>
+      <span class="ticker-item">Non-GMO Certified</span><span class="ticker-dot">✦</span>
+      <span class="ticker-item">Soy Free</span><span class="ticker-dot">✦</span>
+    </div>
+  </div>
+
+  <!-- PRODUCTS -->
+  <section class="products" id="products">
+    <div class="products-header">
+      <h2 class="products-title">THE<br>LINEUP</h2>
+      <p class="products-subtitle">Four flavors. Each one built to make you forget you ever wanted whey.</p>
+    </div>
+    <div class="products-grid">
+
+      <div class="product-card">
+        <span class="product-emoji">🍫</span>
+        <div class="product-flavor">Classic</div>
+        <h3 class="product-name">Dark Cacao<br>Hazelnut</h3>
+        <p class="product-desc">Rich cacao butter, roasted hazelnuts, a hint of sea salt.</p>
+        <div class="product-stats">
+          <div class="stat"><strong>25g</strong>Protein</div>
+          <div class="stat"><strong>290</strong>Calories</div>
+          <div class="stat"><strong>8g</strong>Fiber</div>
+        </div>
+        <div class="product-price-row">
+          <span class="product-price">$4.50</span>
+          <button class="add-btn">Add to Cart</button>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <span class="product-emoji">🥜</span>
+        <div class="product-flavor">Crowd Favourite</div>
+        <h3 class="product-name">Peanut Butter<br>&amp; Oat</h3>
+        <p class="product-desc">Stone-ground PB, whole rolled oats, brown rice syrup.</p>
+        <div class="product-stats">
+          <div class="stat"><strong>26g</strong>Protein</div>
+          <div class="stat"><strong>310</strong>Calories</div>
+          <div class="stat"><strong>7g</strong>Fiber</div>
+        </div>
+        <div class="product-price-row">
+          <span class="product-price">$4.50</span>
+          <button class="add-btn">Add to Cart</button>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <span class="product-emoji">🥥</span>
+        <div class="product-flavor">Tropical</div>
+        <h3 class="product-name">Coconut<br>Mango Lime</h3>
+        <p class="product-desc">Toasted coconut flakes, dried mango, fresh lime zest.</p>
+        <div class="product-stats">
+          <div class="stat"><strong>23g</strong>Protein</div>
+          <div class="stat"><strong>270</strong>Calories</div>
+          <div class="stat"><strong>9g</strong>Fiber</div>
+        </div>
+        <div class="product-price-row">
+          <span class="product-price">$4.50</span>
+          <button class="add-btn">Add to Cart</button>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <span class="product-emoji">☕</span>
+        <div class="product-flavor">For the Bold</div>
+        <h3 class="product-name">Espresso<br>Dark Almond</h3>
+        <p class="product-desc">Cold-brew extract, sliced almonds, raw cacao nibs.</p>
+        <div class="product-stats">
+          <div class="stat"><strong>25g</strong>Protein</div>
+          <div class="stat"><strong>295</strong>Calories</div>
+          <div class="stat"><strong>7g</strong>Fiber</div>
+        </div>
+        <div class="product-price-row">
+          <span class="product-price">$4.50</span>
+          <button class="add-btn">Add to Cart</button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- WHY -->
+  <section id="why">
+    <div class="why">
+      <div class="why-left">
+        <p class="section-label">Why Rawbar</p>
+        <h2 class="why-headline">
+          REAL<br>
+          FOOD DOES<br>
+          THE <em>WORK.</em>
+        </h2>
+        <p class="why-body">
+          We don't believe in cutting corners with isolates and fillers. Every bar starts with whole, recognizable ingredients and nothing that doesn't belong there.
+        </p>
+        <ul class="why-list">
+          <li>Pea + brown rice protein — complete amino acid profile</li>
+          <li>Sweetened only with dates and brown rice syrup</li>
+          <li>No palm oil, no carrageenan, no "natural flavors"</li>
+          <li>Cold-pressed to preserve live enzymes</li>
+          <li>Compostable packaging, carbon-neutral shipping</li>
+        </ul>
+      </div>
+      <div class="why-visual">
+        <div class="why-box">
+          <div class="why-box-icon">🌱</div>
+          <div class="why-box-title">Whole Ingredients</div>
+          <p class="why-box-text">You can read every word on our label.</p>
+        </div>
+        <div class="why-box">
+          <div class="why-box-icon">⚡</div>
+          <div class="why-box-title">Sustained Energy</div>
+          <p class="why-box-text">Complex carbs, no spike, no crash.</p>
+        </div>
+        <div class="why-box">
+          <div class="why-box-icon">🌍</div>
+          <div class="why-box-title">Planet First</div>
+          <p class="why-box-text">Lower carbon footprint than any whey bar.</p>
+        </div>
+        <div class="why-box">
+          <div class="why-box-icon">🏋️</div>
+          <div class="why-box-title">Athlete Tested</div>
+          <p class="why-box-text">Built for performance, not just the shelf.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section class="testimonials" id="reviews">
+    <p class="section-label">What People Are Saying</p>
+    <h2 class="testimonials-title">REAL HUMANS,<br>REAL RESULTS</h2>
+    <div class="testimonials-grid">
+      <div class="testimonial">
+        <p class="testimonial-text">
+          I've tried every protein bar on the market. Rawbar is the only one that doesn't taste like chalk pretending to be chocolate.
+        </p>
+        <div class="testimonial-author">
+          <strong>Maya R.</strong>
+          Marathon Runner · Vancouver
+        </div>
+      </div>
+      <div class="testimonial">
+        <p class="testimonial-text">
+          Finally ditched whey. My recovery is the same, my stomach is way happier, and the Espresso Almond bar is genuinely addictive.
+        </p>
+        <div class="testimonial-author">
+          <strong>Tom K.</strong>
+          Powerlifter · Brooklyn
+        </div>
+      </div>
+      <div class="testimonial">
+        <p class="testimonial-text">
+          As a nutritionist I'm picky. Clean label, no weird additives, 25g protein from real sources. I recommend these to all my clients.
+        </p>
+        <div class="testimonial-author">
+          <strong>Dr. Priya S.</strong>
+          Sports Nutritionist · London
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA BANNER -->
+  <div class="cta-banner">
+    <p class="cta-banner-text">
+      READY TO<br>EAT BETTER<br>TRAIN HARDER?
+    </p>
+    <div class="cta-banner-actions">
+      <button class="btn-dark">Build Your Box — $38</button>
+      <span class="cta-note">12 bars · free shipping · cancel anytime</span>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">RAWBAR</div>
+    <p class="footer-copy">© 2026 Rawbar Foods Inc. — Fuelled by plants.</p>
+    <ul class="footer-links">
+      <li><a href="#">Instagram</a></li>
+      <li><a href="#">Contact</a></li>
+      <li><a href="#">Stockists</a></li>
+    </ul>
+  </footer>
+
+  <script>
+    // Intersection Observer for scroll reveals
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.product-card, .why-box, .testimonial').forEach(el => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(24px)';
+      el.style.transition = 'opacity 0.6s ease, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      observer.observe(el);
+    });
+
+    // Stagger product cards
+    document.querySelectorAll('.product-card').forEach((card, i) => {
+      card.style.transitionDelay = `${i * 0.08}s`;
+    });
+
+    // Add to cart feedback
+    document.querySelectorAll('.add-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const orig = this.textContent;
+        this.textContent = 'Added ✦';
+        this.style.background = 'var(--lime)';
+        this.style.borderColor = 'var(--lime)';
+        this.style.color = 'var(--soil)';
+        setTimeout(() => {
+          this.textContent = orig;
+          this.style.background = '';
+          this.style.borderColor = '';
+          this.style.color = '';
+        }, 1400);
+      });
+    });
+
+    const waitlistForm = document.querySelector('.waitlist-form');
+
+    if (waitlistForm) {
+      waitlistForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+
+        const successMessage = document.createElement('p');
+        successMessage.className = 'waitlist-success';
+        successMessage.textContent = "You're on the list ✦";
+
+        waitlistForm.replaceWith(successMessage);
+      });
+    }
+  </script>
+</body>
+</html>
