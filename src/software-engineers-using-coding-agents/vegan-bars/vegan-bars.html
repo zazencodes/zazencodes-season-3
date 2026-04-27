@@ -893,7 +893,7 @@
         </p>
       </div>
       <div class="waitlist-card">
-        <form class="waitlist-form" action="YOUR_MAILCHIMP_URL_HERE" method="post">
+        <form class="waitlist-form">
           <input
             class="waitlist-input"
             type="email"
@@ -1149,14 +1149,38 @@
     const waitlistForm = document.querySelector('.waitlist-form');
 
     if (waitlistForm) {
-      waitlistForm.addEventListener('submit', (event) => {
+      waitlistForm.addEventListener('submit', async (event) => {
         event.preventDefault();
 
-        const successMessage = document.createElement('p');
-        successMessage.className = 'waitlist-success';
-        successMessage.textContent = "You're on the list ✦";
+        const email = waitlistForm.querySelector('input[type="email"]').value;
+        const btn = waitlistForm.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.textContent = 'SENDING...';
 
-        waitlistForm.replaceWith(successMessage);
+        try {
+          const res = await fetch(
+            'https://us-central1-starvald-demelain-1.cloudfunctions.net/email-capture',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email }),
+            }
+          );
+
+          if (!res.ok) throw new Error('server error');
+
+          const successMessage = document.createElement('p');
+          successMessage.className = 'waitlist-success';
+          successMessage.textContent = "You're on the list ✦";
+          waitlistForm.replaceWith(successMessage);
+        } catch {
+          btn.disabled = false;
+          btn.textContent = 'NOTIFY ME';
+          const err = waitlistForm.querySelector('.waitlist-error') || document.createElement('p');
+          err.className = 'waitlist-error';
+          err.textContent = 'Something went wrong. Please try again.';
+          if (!waitlistForm.querySelector('.waitlist-error')) waitlistForm.append(err);
+        }
       });
     }
   </script>
