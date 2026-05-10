@@ -16,3 +16,14 @@ export type Board = {
   columns: Column[];
   cards: Card[];
 };
+
+export type Project = {
+  id: string;
+  name: string;
+  createdAt: string;
+};
+
+export type Database = {
+  projects: Project[];
+  boards: Record<string, Board>;
+};

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -6,13 +6,19 @@ import {
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { Plus } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 import { useBoard } from "@/hooks/useBoard";
+import { api, type Project } from "@/lib/api";
+import { navigate } from "@/hooks/useHashRoute";
 import { Button } from "@/components/ui/button";
 import { Column } from "./Column";
 import { ColumnDialog } from "./ColumnDialog";
 
-export function Board() {
+type Props = {
+  projectId: string;
+};
+
+export function Board({ projectId }: Props) {
   const {
     board,
     loading,
@@ -24,8 +30,23 @@ export function Board() {
     updateCard,
     deleteCard,
     moveCardOptimistic,
-  } = useBoard();
+  } = useBoard(projectId);
   const [newColumnOpen, setNewColumnOpen] = useState(false);
+  const [project, setProject] = useState<Project | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void api
+      .listProjects()
+      .then((list) => {
+        if (cancelled) return;
+        setProject(list.find((p) => p.id === projectId) ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -52,8 +73,12 @@ export function Board() {
   }
   if (error) {
     return (
-      <div className="flex h-screen items-center justify-center text-destructive">
-        {error}
+      <div className="flex h-screen flex-col items-center justify-center gap-4 text-destructive">
+        <div>{error}</div>
+        <Button variant="outline" onClick={() => navigate("/")}>
+          <ArrowLeft className="h-4 w-4" />
+          Back to projects
+        </Button>
       </div>
     );
   }
@@ -64,7 +89,20 @@ export function Board() {
   return (
     <div className="flex h-screen flex-col">
       <header className="flex items-center justify-between border-b bg-background px-6 py-3">
-        <h1 className="text-lg font-semibold tracking-tight">Kanban Board</h1>
+        <div className="flex items-center gap-3">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            onClick={() => navigate("/")}
+            aria-label="Back to projects"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-lg font-semibold tracking-tight">
+            {project?.name ?? "Kanban Board"}
+          </h1>
+        </div>
         <Button size="sm" onClick={() => setNewColumnOpen(true)}>
           <Plus className="h-4 w-4" />
           Add column

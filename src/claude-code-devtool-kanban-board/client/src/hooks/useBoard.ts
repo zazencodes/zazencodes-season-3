@@ -7,7 +7,7 @@ type State = {
   error: string | null;
 };
 
-export function useBoard() {
+export function useBoard(projectId: string) {
   const [state, setState] = useState<State>({
     board: null,
     loading: true,
@@ -16,7 +16,7 @@ export function useBoard() {
 
   const refresh = useCallback(async () => {
     try {
-      const board = await api.getBoard();
+      const board = await api.getBoard(projectId);
       setState({ board, loading: false, error: null });
     } catch (e) {
       setState({
@@ -25,42 +25,43 @@ export function useBoard() {
         error: e instanceof Error ? e.message : "failed to load board",
       });
     }
-  }, []);
+  }, [projectId]);
 
   useEffect(() => {
+    setState({ board: null, loading: true, error: null });
     void refresh();
   }, [refresh]);
 
   const createColumn = useCallback(
     async (title: string) => {
-      await api.createColumn(title);
+      await api.createColumn(projectId, title);
       await refresh();
     },
-    [refresh],
+    [projectId, refresh],
   );
 
   const renameColumn = useCallback(
     async (id: string, title: string) => {
-      await api.renameColumn(id, title);
+      await api.renameColumn(projectId, id, title);
       await refresh();
     },
-    [refresh],
+    [projectId, refresh],
   );
 
   const deleteColumn = useCallback(
     async (id: string) => {
-      await api.deleteColumn(id);
+      await api.deleteColumn(projectId, id);
       await refresh();
     },
-    [refresh],
+    [projectId, refresh],
   );
 
   const createCard = useCallback(
     async (columnId: string, title: string, description: string) => {
-      await api.createCard(columnId, title, description);
+      await api.createCard(projectId, columnId, title, description);
       await refresh();
     },
-    [refresh],
+    [projectId, refresh],
   );
 
   const updateCard = useCallback(
@@ -68,13 +69,12 @@ export function useBoard() {
       id: string,
       patch: Partial<Pick<Card, "title" | "description" | "columnId" | "order">>,
     ) => {
-      await api.updateCard(id, patch);
+      await api.updateCard(projectId, id, patch);
       await refresh();
     },
-    [refresh],
+    [projectId, refresh],
   );
 
-  // optimistic move — used for drag-and-drop
   const moveCardOptimistic = useCallback(
     async (cardId: string, toColumnId: string) => {
       setState((prev) => {
@@ -85,20 +85,20 @@ export function useBoard() {
         return { ...prev, board: { ...prev.board, cards } };
       });
       try {
-        await api.updateCard(cardId, { columnId: toColumnId });
+        await api.updateCard(projectId, cardId, { columnId: toColumnId });
       } finally {
         await refresh();
       }
     },
-    [refresh],
+    [projectId, refresh],
   );
 
   const deleteCard = useCallback(
     async (id: string) => {
-      await api.deleteCard(id);
+      await api.deleteCard(projectId, id);
       await refresh();
     },
-    [refresh],
+    [projectId, refresh],
   );
 
   return {

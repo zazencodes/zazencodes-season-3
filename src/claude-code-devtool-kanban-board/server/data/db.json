@@ -1,0 +1,51 @@
+{
+  "projects": [
+    {
+      "id": "35d1b12c-0495-4cf6-a8ec-115c5466a2ae",
+      "name": "Kanban board build",
+      "createdAt": "2026-05-10T03:18:31.839Z"
+    }
+  ],
+  "boards": {
+    "35d1b12c-0495-4cf6-a8ec-115c5466a2ae": {
+      "columns": [
+        {
+          "id": "c4d9dfae-61b8-4bf9-8760-a4dbe0fe00ec",
+          "title": "To Do",
+          "order": 0
+        },
+        {
+          "id": "f13ec4f1-2cd1-4e33-9f90-8c40d4646e99",
+          "title": "In Progress",
+          "order": 1
+        },
+        {
+          "id": "0f556d80-29ce-4905-aa3b-1954e719c0a0",
+          "title": "Done",
+          "order": 2
+        },
+        {
+          "id": "00568dd1-f5cb-4b2b-acc9-5e973e4773f5",
+          "title": "Backlog",
+          "order": 3
+        }
+      ],
+      "cards": [
+        {
+          "id": "93d339a8-f116-4b90-b7ca-01cb2663ef40",
+          "columnId": "0f556d80-29ce-4905-aa3b-1954e719c0a0",
+          "title": "add dark mode",
+          "description": "should be easy",
+          "order": 0
+        },
+        {
+          "id": "8f161cf0-5663-42e3-8932-355cb46169d6",
+          "columnId": "f13ec4f1-2cd1-4e33-9f90-8c40d4646e99",
+          "title": "add multi project support!",
+          "description": "",
+          "order": 0
+        }
+      ]
+    }
+  }
+}

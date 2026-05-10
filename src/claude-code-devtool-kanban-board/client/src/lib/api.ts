@@ -17,6 +17,12 @@ export type Board = {
   cards: Card[];
 };
 
+export type Project = {
+  id: string;
+  name: string;
+  createdAt: string;
+};
+
 async function request<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
   const res = await fetch(input, {
     ...init,
@@ -34,32 +40,57 @@ async function request<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  getBoard: () => request<Board>("/api/board"),
-  createColumn: (title: string) =>
-    request<Column>("/api/columns", {
+  listProjects: () => request<Project[]>("/api/projects"),
+  createProject: (name: string) =>
+    request<Project>("/api/projects", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    }),
+  renameProject: (id: string, name: string) =>
+    request<Project>(`/api/projects/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ name }),
+    }),
+  deleteProject: (id: string) =>
+    request<void>(`/api/projects/${id}`, { method: "DELETE" }),
+
+  getBoard: (projectId: string) =>
+    request<Board>(`/api/projects/${projectId}/board`),
+  createColumn: (projectId: string, title: string) =>
+    request<Column>(`/api/projects/${projectId}/columns`, {
       method: "POST",
       body: JSON.stringify({ title }),
     }),
-  renameColumn: (id: string, title: string) =>
-    request<Column>(`/api/columns/${id}`, {
+  renameColumn: (projectId: string, id: string, title: string) =>
+    request<Column>(`/api/projects/${projectId}/columns/${id}`, {
       method: "PATCH",
       body: JSON.stringify({ title }),
     }),
-  deleteColumn: (id: string) =>
-    request<void>(`/api/columns/${id}`, { method: "DELETE" }),
-  createCard: (columnId: string, title: string, description: string) =>
-    request<Card>("/api/cards", {
+  deleteColumn: (projectId: string, id: string) =>
+    request<void>(`/api/projects/${projectId}/columns/${id}`, {
+      method: "DELETE",
+    }),
+  createCard: (
+    projectId: string,
+    columnId: string,
+    title: string,
+    description: string,
+  ) =>
+    request<Card>(`/api/projects/${projectId}/cards`, {
       method: "POST",
       body: JSON.stringify({ columnId, title, description }),
     }),
   updateCard: (
+    projectId: string,
     id: string,
     patch: Partial<Pick<Card, "title" | "description" | "columnId" | "order">>,
   ) =>
-    request<Card>(`/api/cards/${id}`, {
+    request<Card>(`/api/projects/${projectId}/cards/${id}`, {
       method: "PATCH",
       body: JSON.stringify(patch),
     }),
-  deleteCard: (id: string) =>
-    request<void>(`/api/cards/${id}`, { method: "DELETE" }),
+  deleteCard: (projectId: string, id: string) =>
+    request<void>(`/api/projects/${projectId}/cards/${id}`, {
+      method: "DELETE",
+    }),
 };

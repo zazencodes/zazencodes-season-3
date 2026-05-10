@@ -30,7 +30,7 @@ export function Card({ card, onClick }: Props) {
       }}
       className={cn(
         "rounded-md border bg-card p-3 text-sm shadow-sm cursor-grab active:cursor-grabbing select-none",
-        "hover:border-slate-400 transition-colors",
+        "hover:border-ring transition-colors",
         isDragging && "opacity-40",
       )}
     >

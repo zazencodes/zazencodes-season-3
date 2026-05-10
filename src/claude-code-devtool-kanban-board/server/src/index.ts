@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { readBoard } from "./db.js";
+import { projectsRouter } from "./routes/projects.js";
 import { columnsRouter } from "./routes/columns.js";
 import { cardsRouter } from "./routes/cards.js";
 
@@ -10,13 +10,9 @@ const PORT = Number(process.env.PORT ?? 3001);
 app.use(cors());
 app.use(express.json());
 
-app.get("/api/board", async (_req, res) => {
-  const board = await readBoard();
-  res.json(board);
-});
-
-app.use("/api/columns", columnsRouter);
-app.use("/api/cards", cardsRouter);
+app.use("/api/projects", projectsRouter);
+app.use("/api/projects/:projectId/columns", columnsRouter);
+app.use("/api/projects/:projectId/cards", cardsRouter);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);

@@ -53,8 +53,8 @@ export function Column({
     <div
       ref={setNodeRef}
       className={cn(
-        "flex w-72 shrink-0 flex-col rounded-lg border bg-slate-100/60 p-3 transition-colors",
-        isOver && "bg-slate-200 ring-2 ring-slate-400",
+        "flex w-72 shrink-0 flex-col rounded-lg border bg-muted/40 p-3 transition-colors",
+        isOver && "bg-muted ring-2 ring-ring",
       )}
     >
       <div className="flex items-center justify-between gap-2 pb-3">
