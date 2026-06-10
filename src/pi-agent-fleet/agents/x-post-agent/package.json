@@ -1,0 +1,11 @@
+{
+  "name": "x-post-agent",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "pi"
+  },
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "^0.78.0"
+  }
+}
