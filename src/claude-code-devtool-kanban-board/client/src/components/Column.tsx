@@ -53,11 +53,11 @@ export function Column({
     <div
       ref={setNodeRef}
       className={cn(
-        "flex w-72 shrink-0 flex-col rounded-lg border bg-muted/40 p-3 transition-colors",
+        "flex h-full max-h-full w-72 shrink-0 flex-col overflow-hidden rounded-lg border bg-muted/40 p-3 transition-colors",
         isOver && "bg-muted ring-2 ring-ring",
       )}
     >
-      <div className="flex items-center justify-between gap-2 pb-3">
+      <div className="flex shrink-0 items-center justify-between gap-2 pb-3">
         <h2 className="font-semibold text-sm tracking-tight truncate">
           {column.title}
           <span className="ml-2 text-xs font-normal text-muted-foreground">
@@ -86,7 +86,7 @@ export function Column({
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 min-h-[40px]">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
         {sorted.map((card) => (
           <Card key={card.id} card={card} onClick={() => setEditingCard(card)} />
         ))}
@@ -95,7 +95,7 @@ export function Column({
       <Button
         variant="ghost"
         size="sm"
-        className="mt-2 justify-start text-muted-foreground hover:text-foreground"
+        className="mt-2 shrink-0 justify-start text-muted-foreground hover:text-foreground"
         onClick={() => setCreateOpen(true)}
       >
         <Plus className="h-4 w-4" />
