@@ -8,5 +8,3 @@ Companion notes for the video. There are two paths:
    have a fresh Linux VPS and want a minimal Hermes install without Hostinger's
    generated Docker layout.
 
-> **Get 10% off Hostinger** with code **ZAZEN**:
-> <https://hostinger.com/zazen>
