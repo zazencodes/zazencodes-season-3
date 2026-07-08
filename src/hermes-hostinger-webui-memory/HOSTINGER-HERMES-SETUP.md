@@ -24,8 +24,8 @@ That opens the Hostinger landing page for the Hermes one-click deploy.
 1. Click **Choose plan**.
 2. Pick a VPS plan. I recommend **KVM 1** or **KVM 2** for this setup.
 
-    > [!IMPORTANT]
-    > Get 10% off yearly plans with code ZAZEN
+> [!IMPORTANT]
+> Get 10% off yearly plans with code ZAZEN
 
 3. During setup, choose the Hermes one-click template.
 4. Finish checkout and wait for Hostinger to provision the VPS.
