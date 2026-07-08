@@ -14,6 +14,7 @@ environment as the CLI.
 
 ## Initial VPS setup
 
+
 Start here:
 
 <https://hostinger.com/zazen>
@@ -22,6 +23,10 @@ That opens the Hostinger landing page for the Hermes one-click deploy.
 
 1. Click **Choose plan**.
 2. Pick a VPS plan. I recommend **KVM 1** or **KVM 2** for this setup.
+
+    > [!IMPORTANT]
+    > Get 10% off yearly plans with code ZAZEN
+
 3. During setup, choose the Hermes one-click template.
 4. Finish checkout and wait for Hostinger to provision the VPS.
 5. SSH into the server once it is ready:
@@ -345,8 +350,7 @@ provider while the built-in files stay active.
    ```
 
 Have a few normal conversations after setup, then start a fresh session and ask
-about preferences or facts you mentioned earlier. That is the practical test
-that Honcho is adding value beyond flat local memory files.
+about preferences or facts you mentioned earlier.
 
-> **Get 10% off Hostinger** with code **ZAZEN**:
-> <https://hostinger.com/zazen>
+Realistically, it will take some time for you to notice the benefits of Honcho.
+
