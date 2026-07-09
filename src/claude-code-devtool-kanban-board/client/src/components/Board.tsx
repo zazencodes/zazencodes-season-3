@@ -111,7 +111,7 @@ export function Board({ projectId }: Props) {
 
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <div className="flex-1 overflow-x-auto overflow-y-hidden p-6">
-          <div className="flex h-full gap-4 items-start">
+          <div className="flex h-full gap-4 items-stretch">
             {columns.map((col) => (
               <Column
                 key={col.id}
