@@ -1,0 +1,46 @@
+[
+  {
+    "id": "github:acme/web#14",
+    "provider": "github",
+    "number": 14,
+    "title": "Login form crashes when email contains '+'",
+    "body": "Repro: visit /login, enter `foo+bar@example.com`, submit. Stack trace in #12.",
+    "labels": ["bug", "frontend"],
+    "state": "open",
+    "url": "https://github.com/acme/web/issues/14",
+    "difficulty": 2
+  },
+  {
+    "id": "github:acme/web#27",
+    "provider": "github",
+    "number": 27,
+    "title": "Add dark mode toggle to settings page",
+    "body": "User Story: as a user, I want a dark mode toggle. Persist choice in localStorage. Respect prefers-color-scheme on first load.",
+    "labels": ["feature", "frontend", "good first issue"],
+    "state": "open",
+    "url": "https://github.com/acme/web/issues/27",
+    "difficulty": 3
+  },
+  {
+    "id": "github:acme/web#31",
+    "provider": "github",
+    "number": 31,
+    "title": "Document the new caching layer",
+    "body": "We added Redis-backed caching last sprint. README needs a section on cache keys, invalidation, and TTLs.",
+    "labels": ["docs"],
+    "state": "open",
+    "url": "https://github.com/acme/web/issues/31",
+    "difficulty": 1
+  },
+  {
+    "id": "github:acme/web#42",
+    "provider": "github",
+    "number": 42,
+    "title": "Race condition in checkout: double-charge on retry",
+    "body": "When the payment provider returns a 5xx and we retry, some users get charged twice. Critical. Owner: payments team.",
+    "labels": ["bug", "backend", "critical"],
+    "state": "open",
+    "url": "https://github.com/acme/web/issues/42",
+    "difficulty": 5
+  }
+]

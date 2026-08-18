@@ -1,0 +1,200 @@
+/* Reset + base */
+* { box-sizing: border-box; }
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0d0a08;
+  color: #f1d4a3;
+  font-family: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+#root {
+  position: relative;
+}
+
+#phaser-root {
+  position: absolute;
+  inset: 0;
+}
+
+/* HUD chrome — pixel-art framing without external assets */
+.hud {
+  position: absolute;
+  pointer-events: none;
+  z-index: 10;
+  image-rendering: pixelated;
+}
+
+.hud > * {
+  pointer-events: auto;
+}
+
+.hud-panel {
+  background: linear-gradient(180deg, #2a1a0a 0%, #1a0e06 100%);
+  border: 2px solid #6a4a1a;
+  box-shadow: 0 0 0 2px #0d0a08, 0 4px 12px rgba(0, 0, 0, 0.6);
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #f1d4a3;
+}
+
+.hud-panel h3 {
+  margin: 0 0 6px 0;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: #d4a44a;
+  text-transform: uppercase;
+}
+
+/* Top-left: player vitals */
+.hud-player {
+  top: 12px;
+  left: 12px;
+  width: 240px;
+  /* Reserve space for the two bars + a row of meta. Keeps the panel
+   * height predictable so the quest log below it never overlaps. */
+}
+
+.bar {
+  position: relative;
+  height: 10px;
+  background: #1a0e06;
+  border: 1px solid #6a4a1a;
+  margin: 4px 0 8px;
+  overflow: hidden;
+}
+
+.bar > .fill {
+  position: absolute;
+  inset: 0;
+  width: var(--pct, 100%);
+  background: var(--color, #d44a3a);
+  transition: width 250ms ease-out;
+}
+
+.bar.hp > .fill { --color: linear-gradient(90deg, #d44a3a 0%, #f08070 100%); }
+.bar.xp > .fill { --color: linear-gradient(90deg, #3a8ad4 0%, #7ec0f0 100%); }
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+/* Left side: quest log */
+.hud-quests {
+  /* Clear of the player panel (top 12px + ~155px panel height) plus a gap. */
+  top: 180px;
+  left: 12px;
+  width: 280px;
+  max-height: calc(100vh - 320px);
+  overflow-y: auto;
+}
+
+.quest {
+  padding: 6px 8px;
+  margin: 4px 0;
+  background: rgba(0, 0, 0, 0.3);
+  border-left: 3px solid #6a4a1a;
+  cursor: pointer;
+  font-size: 11px;
+  transition: background 120ms;
+}
+.quest:hover { background: rgba(212, 164, 74, 0.15); }
+.quest.active { border-left-color: #d44a3a; }
+.quest.defeated { opacity: 0.4; text-decoration: line-through; }
+.quest.out-of-range { opacity: 0.5; cursor: default; border-left-color: #4a2a0a; }
+.quest.out-of-range:hover { background: rgba(0, 0, 0, 0.3); }
+.quest.in-range { border-left-color: #d44a3a; }
+.quest .kind {
+  display: inline-block;
+  padding: 0 4px;
+  margin-right: 4px;
+  background: #6a4a1a;
+  color: #1a0e06;
+  font-size: 9px;
+  text-transform: uppercase;
+  border-radius: 2px;
+}
+
+/* Top-right: session info */
+.hud-session {
+  top: 12px;
+  right: 12px;
+  width: 280px;
+}
+.hud-session .empty { opacity: 0.5; font-style: italic; }
+.hud-session .progress {
+  display: flex; gap: 4px; margin: 6px 0 2px;
+}
+.hud-session .progress .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #6a4a1a;
+}
+.hud-session .progress .dot.done { background: #6ad44a; }
+.hud-session .progress .dot.active { background: #d4c43a; animation: pulse 0.8s infinite; }
+
+@keyframes pulse {
+  50% { transform: scale(1.4); }
+}
+
+/* Bottom: combat log */
+.hud-log {
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  height: 110px;
+  overflow-y: auto;
+  font-size: 11px;
+}
+
+.hud-log .entry { padding: 2px 0; opacity: 0.9; }
+.hud-log .entry.player { color: #7ec0f0; }
+.hud-log .entry.monster { color: #f08070; }
+.hud-log .entry.system { color: #d4a44a; font-weight: bold; }
+.hud-log .entry .ts { color: #6a4a1a; margin-right: 6px; }
+
+/* Connection indicator */
+.conn {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 12px;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  background: #1a0e06;
+  border: 1px solid #6a4a1a;
+  z-index: 20;
+}
+.conn.ok { color: #6ad44a; border-color: #6ad44a; }
+.conn.bad { color: #d44a3a; border-color: #d44a3a; }
+
+/* Title splash */
+.title {
+  position: absolute;
+  bottom: 140px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 28px;
+  letter-spacing: 0.3em;
+  color: #d4a44a;
+  text-shadow: 0 0 12px rgba(212, 164, 74, 0.5);
+  pointer-events: none;
+  z-index: 5;
+  animation: fadein 1.2s ease-out;
+}
+.title small { display: block; font-size: 10px; opacity: 0.6; letter-spacing: 0.2em; text-align: center; margin-top: 4px; }
+
+@keyframes fadein {
+  from { opacity: 0; transform: translate(-50%, 8px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}

@@ -16,6 +16,7 @@ These are the Season 3 source folders currently in this repo. The published vide
 
 | Video | What you'll find | Watch | Source code |
 | --- | --- | --- | --- |
+| I Built a GitHub Issue RPG with MiniMax | Browser RPG (Phaser + React) where a MiniMax coding agent fights GitHub issues as monsters. Each tool call becomes an attack animation; victory = a real PR merged. | Coming soon | [`src/minimax-dev-rpg`](src/minimax-dev-rpg) |
 | [How to Build a Serverless AI Agent with Pi](https://youtu.be/EEoMnEcXltk) | Hub-and-spoke Pi agent fleet with a hub coding agent delegating to specialized sub-agents, deployed serverlessly to the cloud. | [Watch on YouTube](https://youtu.be/EEoMnEcXltk) | [`src/pi-agent-fleet`](src/pi-agent-fleet) |
 | [Build an AI Bookkeeper with Pi Agent Harness](https://youtu.be/Khfiy1lwGPs) | Full-stack AI bookkeeping app built with the Pi agent harness, including a receipt upload UI and agent memory. | [Watch on YouTube](https://youtu.be/Khfiy1lwGPs) | [`src/bookkeeping-agent`](src/bookkeeping-agent) |
 | [Build your own Developer Tools with Claude Code](https://youtu.be/4Rx134HkTWw) | Kanban board dev tool built end-to-end: React + Express web app, a CLI, an agent skill, and Claude Code hooks to keep everything in sync. | [Watch on YouTube](https://youtu.be/4Rx134HkTWw) | [`src/claude-code-devtool-kanban-board`](src/claude-code-devtool-kanban-board) |

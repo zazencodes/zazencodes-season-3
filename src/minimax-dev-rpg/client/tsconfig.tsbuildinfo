@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/store.ts","./src/game/proceduralassets.ts","./src/game/main.ts","./src/game/scenes/battlescene.ts","./src/game/scenes/bootscene.ts","./src/game/scenes/worldscene.ts","./src/ui/combatlog.tsx","./src/ui/hud.tsx","./src/ui/questlog.tsx","./src/ui/sessionpanel.tsx","./src/ws/bus.ts","./src/ws/client.ts"],"version":"5.9.3"}

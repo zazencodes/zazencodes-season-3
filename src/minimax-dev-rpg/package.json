@@ -1,0 +1,16 @@
+{
+  "name": "minimax-dev-rpg",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm -r --parallel --stream dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint"
+  },
+  "packageManager": "pnpm@10.25.0",
+  "engines": {
+    "node": ">=20"
+  }
+}
