@@ -335,14 +335,30 @@ provider while the built-in files stay active.
 
 3. Choose `honcho` when prompted and paste the API key.
 
-4. Confirm the configured provider:
+4. Fix the generated config file ownership.
+
+   The setup command runs through `docker compose exec` as root, but the
+   Telegram gateway, WebUI, and dashboard processes run as the `hermes` user
+   inside the container. If `/opt/data/config.yaml` or `/opt/data/honcho.json`
+   are left owned by root with `600` permissions, Telegram turns can fail with
+   permission errors even though `memory status` works from a root shell.
 
    ```bash
    cd /docker/hermes-agent-qqnm
-   docker compose exec -it hermes-agent /opt/hermes/hermes memory status
+   docker compose exec hermes-agent sh -lc \
+     'chown hermes:hermes /opt/data/config.yaml /opt/data/honcho.json && chmod 600 /opt/data/config.yaml /opt/data/honcho.json'
+   docker compose restart hermes-agent
    ```
 
-5. To disable Honcho and return to built-in memory only:
+5. Confirm the configured provider as the `hermes` service user:
+
+   ```bash
+   cd /docker/hermes-agent-qqnm
+   docker compose exec hermes-agent sh -lc \
+     'su -s /bin/sh hermes -c "HERMES_HOME=/opt/data HOME=/opt/data/home /opt/hermes/.venv/bin/hermes memory status"'
+   ```
+
+6. To disable Honcho and return to built-in memory only:
 
    ```bash
    cd /docker/hermes-agent-qqnm
@@ -353,4 +369,3 @@ Have a few normal conversations after setup, then start a fresh session and ask
 about preferences or facts you mentioned earlier.
 
 Realistically, it will take some time for you to notice the benefits of Honcho.
-
