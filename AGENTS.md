@@ -24,6 +24,12 @@
   - title from `info.json`
   - YouTube URL from `info.json`
   - optional short description from the folder README or local `summary.md`
+- Locate and process the video thumbnail:
+  - Search for the full-resolution thumbnail on the connected external volume (`/Volumes/T7 Shield/YT - Finals`) or in `~/Downloads`.
+  - If the thumbnail cannot be found on the volume or in `~/Downloads`, ask the user where it is located.
+  - Copy the thumbnail to `~/Downloads/` before modifying it.
+  - Resize the thumbnail to 480px width (480x270, 16:9 ratio) and save it to `assets/thumbnails/<folder-name>.png` (e.g. using `sips --resampleWidth 480`).
+  - Embed the clickable thumbnail in the "Watch" column: `[![<title>](assets/thumbnails/<folder-name>.png)](<youtube-url>)`.
 - If the match is unclear, run a targeted web or YouTube search to confirm before editing `README.md`.
 - Keep the video index in reverse chronological order based on the matching local video folders.
 - Do not re-check or rewrite existing video rows unless the user explicitly asks.
