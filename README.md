@@ -10,6 +10,12 @@ If you landed here from GitHub, the easiest way to use this repo is:
 
 You can also learn more at [zazencodes.com](https://zazencodes.com/) and get a weekly update when I publish at [zazencodes.com/newsletter](https://zazencodes.com/newsletter).
 
+## Coming soon
+
+| Video | What you'll find | Watch | Source code |
+| --- | --- | --- | --- |
+| Build a Cyberpunk Coding Game with Kimi K3 | A self-contained Godot 4 cyberpunk first-person coding game: solve Python challenges at in-world terminals before the countdown ends. | Video coming soon | [`src/cyberpunk-coding-game-kimi-k3`](src/cyberpunk-coding-game-kimi-k3) |
+
 ## Video Index
 
 These are the Season 3 source folders currently in this repo. The published videos below are listed in verified order based on the matching entries in my content library.
