@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """
-⚡ Jev System 1 Decision Engine Demo (ZazenCodes Season 3)
-Ultra-Fast Agent Routing, Calibrated Guardrails & Deterministic Dispatching
+⚡ Jev System 1 Autonomous Triage & Guardrail Engine
+Comprehensive production-grade CLI runner with structured logs and output persistence.
 """
 
 import os
+import sys
 import time
-import re
-from typing import Dict, Any, Optional
+import json
+from typing import Dict, Any, List, Optional
+from dataclasses import dataclass, asdict
 
-# Optional dependencies with graceful fallback
+# Optional visual enhancements
 try:
     from rich.console import Console
     from rich.table import Table
@@ -33,11 +35,11 @@ except ImportError:
     HAS_SDK = False
 
 
-class JevDecisionClient:
+class JevProductionEngine:
     """
-    Client wrapper for TypeSafe AI Jev System One API.
-    Executes live requests when TYPESAFE_API_KEY is present,
-    or runs calibrated simulation for offline testing and demos.
+    Production dispatcher utilizing TypeSafe AI Jev System 1 model.
+    Handles live API execution or fallback simulation, timing metrics,
+    calibrated thresholds, and persistent result exports.
     """
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or os.getenv("TYPESAFE_API_KEY")
@@ -55,8 +57,8 @@ class JevDecisionClient:
             elapsed_ms = (time.perf_counter() - start_time) * 1000
             return response, elapsed_ms
         else:
-            # Calibrated deterministic simulation for offline demos
-            time.sleep(0.085)  # Simulates ~85ms parallel forward pass
+            # Deterministic simulation representing parallel forward pass (~85ms)
+            time.sleep(0.085)
             elapsed_ms = (time.perf_counter() - start_time) * 1000
             return self._simulate_response(state, questions), elapsed_ms
 
@@ -159,16 +161,17 @@ TEST_TICKETS = [
 ]
 
 
-def route_ticket(ticket: Dict[str, str], client: JevDecisionClient) -> Dict[str, Any]:
+def route_ticket(ticket: Dict[str, str], engine: JevProductionEngine) -> Dict[str, Any]:
+    print(f"\n[Evaluating {ticket['id']}] '{ticket['name']}'...")
     state = {"document": ticket["text"]}
-    response, latency_ms = client.evaluate(state, QUESTIONS)
+    response, latency_ms = engine.evaluate(state, QUESTIONS)
     
     dept_ans = response.answers["department"]
     urgency_ans = response.answers["urgency"]
     adv_ans = response.answers["is_adversarial"]
     refund_ans = response.answers["can_auto_resolve"]
     
-    # Calibrated Threshold Branching
+    # Threshold Branching
     if adv_ans.noul >= 0.70:
         action = "🛡️ REJECT_AT_EDGE"
         handler = "Security Firewall (Zero Token Leakage)"
@@ -186,43 +189,51 @@ def route_ticket(ticket: Dict[str, str], client: JevDecisionClient) -> Dict[str,
         handler = f"{dept_ans.choice.title()} Team Queue"
         reason = f"Confidence: {dept_ans.confidence:.1%}"
         
+    print(f"  ↳ Latency: {latency_ms:.1f}ms | Decision: {action} | Handler: {handler}")
+    
     return {
         "id": ticket["id"],
         "name": ticket["name"],
-        "latency_ms": latency_ms,
+        "input_text": ticket["text"],
+        "latency_ms": round(latency_ms, 2),
         "department": getattr(dept_ans, "choice", "N/A"),
-        "confidence": f"{getattr(dept_ans, 'confidence', 0):.1%}",
-        "urgency": f"{getattr(urgency_ans, 'score', 0):.1f}",
-        "adversarial": f"{adv_ans.noul:.1%}",
+        "dept_confidence": round(float(getattr(dept_ans, "confidence", 0)), 4),
+        "urgency_score": round(float(getattr(urgency_ans, "score", 0)), 2),
+        "adversarial_probability": round(float(adv_ans.noul), 4),
+        "auto_resolve_probability": round(float(refund_ans.noul), 4),
         "action": action,
-        "handler": handler,
+        "assigned_handler": handler,
         "rationale": reason
     }
 
 
 def main():
-    if HAS_RICH:
-        console.print(Panel.fit(
-            "[bold cyan]⚡ Jev System 1 Autonomous Decision Engine[/bold cyan]\n"
-            "[dim]Non-Autoregressive Agent Triage & Calibrated Routing[/dim]",
-            border_style="cyan"
-        ))
-    else:
-        print("\n=== ⚡ Jev System 1 Autonomous Decision Engine ===")
-        print("Non-Autoregressive Agent Triage & Calibrated Routing\n")
+    print("=" * 70)
+    print("⚡ JEV SYSTEM 1 AUTONOMOUS DECISION ENGINE")
+    print("Non-Autoregressive Agent Triage & Calibrated Routing")
+    print("=" * 70)
     
-    client = JevDecisionClient()
-    if HAS_RICH:
-        mode_str = "[bold green]🟢 LIVE API[/bold green]" if client.is_live else "[bold yellow]🟡 CALIBRATED SIMULATION[/bold yellow]"
-        console.print(f"Status: {mode_str}\n")
-    else:
-        mode_str = "LIVE API" if client.is_live else "CALIBRATED SIMULATION"
-        print(f"Status: {mode_str}\n")
+    engine = JevProductionEngine()
+    mode = "LIVE API" if engine.is_live else "CALIBRATED SIMULATION"
+    print(f"Operational Mode: {mode}")
+    print(f"Test Batch Size: {len(TEST_TICKETS)} tickets")
+    print("-" * 70)
     
-    results = [route_ticket(t, client) for t in TEST_TICKETS]
+    results = [route_ticket(t, engine) for t in TEST_TICKETS]
+    
+    # Save output artifacts for review
+    output_dir = os.path.dirname(os.path.abspath(__file__))
+    output_file = os.path.join(output_dir, "triage_results.json")
+    with open(output_file, "w") as f:
+        json.dump(results, f, indent=2)
+    print(f"\n📁 Saved complete decision run to: {output_file}")
+    
+    print("\n" + "=" * 70)
+    print("SUMMARY RESULTS")
+    print("=" * 70)
     
     if HAS_RICH:
-        table = Table(title="⚡ Calibrated Triage Routing Results", show_header=True, header_style="bold magenta")
+        table = Table(title="⚡ Calibrated Triage Routing Summary", show_header=True, header_style="bold magenta")
         table.add_column("ID", style="dim", width=10)
         table.add_column("Scenario", width=25)
         table.add_column("Latency", justify="right", width=10)
@@ -230,29 +241,25 @@ def main():
         table.add_column("Assigned Handler", width=32)
         table.add_column("Calibrated Rationale", width=35)
         
-        for row in results:
+        for r in results:
             table.add_row(
-                row["id"],
-                row["name"],
-                f"{row['latency_ms']:.1f}ms",
-                row["action"],
-                row["handler"],
-                row["rationale"]
+                r["id"],
+                r["name"],
+                f"{r['latency_ms']:.1f}ms",
+                r["action"],
+                r["assigned_handler"],
+                r["rationale"]
             )
-            
         console.print(table)
     else:
         header = f"{'ID':<10} | {'Scenario':<25} | {'Latency':<9} | {'Action Taken':<26} | {'Assigned Handler':<32} | {'Calibrated Rationale'}"
         print(header)
         print("-" * len(header))
-        for row in results:
-            print(f"{row['id']:<10} | {row['name']:<25} | {row['latency_ms']:.1f}ms   | {row['action']:<26} | {row['handler']:<32} | {row['rationale']}")
-    
+        for r in results:
+            print(f"{r['id']:<10} | {r['name']:<25} | {r['latency_ms']:.1f}ms   | {r['action']:<26} | {r['assigned_handler']:<32} | {r['rationale']}")
+            
     avg_latency = sum(r["latency_ms"] for r in results) / len(results)
-    if HAS_RICH:
-        console.print(f"\n⚡ [bold green]Average Decision Latency:[/bold green] [bold]{avg_latency:.1f}ms[/bold] (vs ~2,000ms for traditional LLMs)")
-    else:
-        print(f"\n⚡ Average Decision Latency: {avg_latency:.1f}ms (vs ~2,000ms for traditional LLMs)\n")
+    print(f"\n⚡ Average Latency: {avg_latency:.1f}ms (vs ~2,000ms for traditional LLM structured outputs)\n")
 
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ Traditional Large Language Models (LLMs) like GPT-4o or Claude 3.7 are **System 
 
 When used inside autonomous agent loops for routine routing, classification, and safety checks, LLMs introduce 1.5–3.5s latency per step, burn significant API cost, and risk JSON schema hallucinations.
 
-**Jev** takes an unstructured input `state` and evaluates typed questions (`Choice`, `Score`, `Noul`) in a **single parallel forward pass** (70ms–500ms) with mathematically calibrated confidence scores trained via RLCD (Reinforcement Learning for Calibrated Decisions).
+**Jev** takes an unstructured input `state` and evaluates typed questions (`Choice`, `Score`, `Noul`) in a **single parallel forward pass** (70ms–150ms) with mathematically calibrated confidence scores trained via RLCD (Reinforcement Learning for Calibrated Decisions).
 
 ```
 ┌────────────────────────────────────────────────────────┐
@@ -26,19 +26,19 @@ When used inside autonomous agent loops for routine routing, classification, and
    - Parallel Typed Sampler        - Autoregressive Generation
    - Choice / Score / Noul         - Complex Multi-Step Reasoning
             │
-            ├─► Adversarial? ──────► [Drop / Edge Reject]
-            ├─► High Confidence? ──► [Instant Deterministic Execution]
-            └─► Low Confidence? ───► [Escalate to System 2 / Human]
+            ├─► Adversarial? (Noul >= 0.70) ────────► 🛡️ [Edge Drop / Firewall]
+            ├─► Auto-Policy? (Noul >= 0.85 & Conf) ──► ⚡ [Instant Microservice Action]
+            └─► Urgent / Low Conf (< 0.75) ──────────► 🚨 [Escalate to System 2 / Human]
 ```
 
 ---
 
 ## Quick Start
 
-### 1. Clone & Set Up Environment
+### 1. Set Up Environment
 
 ```bash
-cd /Users/alex/pro/zazencodes-jev-demo
+cd /Users/alex/pro/zazencodes-season-3/src/jev-system-one-model-demo
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -46,14 +46,27 @@ pip install -r requirements.txt
 
 ### 2. Configure API Key
 
-Copy `.env.example` to `.env` and add your TypeSafe API key:
+Copy `.env.example` to `.env` and set your TypeSafe API key:
 
 ```bash
 cp .env.example .env
-# Edit .env and set TYPESAFE_API_KEY
+# Edit .env and set TYPESAFE_API_KEY=your_key_here
 ```
 
-### 3. Launch the Jupyter Notebook
+---
+
+## 1. Interactive Tutorial (`jev_system_one_demo.ipynb`)
+
+A clean, modular tutorial designed for screencasts and slow walk-throughs:
+
+- **Step 0:** Minimal setup & client initialization (`TypeSafeClient`)
+- **Step 1:** Binary Yes/No probability decisions with `Noul`
+- **Step 2:** Categorical routing with `Choice` & criteria definitions
+- **Step 3:** Continuous ordinal ratings with `Score`
+- **Step 4:** Single-pass parallel multi-question evaluation
+- **Step 5:** Autonomous triage loop with calibrated branching logic
+
+Launch in Jupyter:
 
 ```bash
 jupyter notebook jev_system_one_demo.ipynb
@@ -61,13 +74,18 @@ jupyter notebook jev_system_one_demo.ipynb
 
 ---
 
-## Notebook Structure (`jev_system_one_demo.ipynb`)
+## 2. Production CLI Runner (`demo.py`)
 
-1. **Architecture Overview:** The Kahneman System 1 vs System 2 paradigm in AI engineering.
-2. **Core Primitives:** Hands-on code with `Noul` (probabilities), `Choice` (categorical), and `Score` (ordinal ratings).
-3. **Autonomous Dispatcher & Guardrail Pipeline:** Evaluating real-world customer tickets across 4 parallel dimensions.
-4. **Calibrated Branching Logic:** Edge rejection, Fast-path microservice execution, and System 2 escalation thresholds.
-5. **Benchmarks:** Empirical latency and cost comparisons between Jev System 1 vs LLM Structured Outputs.
+Run the full end-to-end triage dispatcher script with detailed step logging and JSON export:
+
+```bash
+python3 demo.py
+```
+
+### Script Outputs:
+- Prints real-time evaluation logs and decision branching per ticket.
+- Renders a complete terminal summary table of actions, assigned handlers, and calibrated rationales.
+- Exports a complete structured log to `triage_results.json` for later review.
 
 ---
 
@@ -75,3 +93,4 @@ jupyter notebook jev_system_one_demo.ipynb
 
 - Official Documentation: [docs.typesafe.ai](https://docs.typesafe.ai)
 - TypeSafe AI: [typesafe.ai](https://typesafe.ai)
+- Mind Map Canvas: `~/obsidian/ZazenCodesCanvas/src/jev-system-one-model-demo/main.canvas`
