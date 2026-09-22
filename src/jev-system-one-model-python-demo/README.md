@@ -38,7 +38,7 @@ When used inside autonomous agent loops for routine routing, classification, and
 ### 1. Set Up Environment
 
 ```bash
-cd /Users/alex/pro/zazencodes-season-3/src/jev-system-one-model-demo
+cd /Users/alex/pro/zazencodes-season-3/src/jev-system-one-model-python-demo
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
