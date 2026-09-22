@@ -1,0 +1,29 @@
+@import url("https://fonts.googleapis.com/css2?family=Mozilla+Text:wght@400..700&display=swap");
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@alpic-ai/ui/theme";
+
+@source "../node_modules/@alpic-ai/ui/src";
+
+@theme {
+  --font-mozilla: "Mozilla Text", serif;
+}
+
+/*
+ * Categorical series colors, validated for color-vision deficiency against both
+ * surfaces (see the `dataviz` skill's validator). Capped at three hues: past
+ * three, categories fold into "other".
+ */
+:root {
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-other: #6b7a7a;
+}
+
+.dark {
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-other: #90a4a4;
+}
