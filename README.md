@@ -14,7 +14,8 @@ You can also learn more at [zazencodes.com](https://zazencodes.com/) and get a w
 
 | Video | What you'll find | Watch | Source code |
 | --- | --- | --- | --- |
-| Build a Cyberpunk Coding Game with Kimi K3 | A self-contained Godot 4 cyberpunk first-person coding game: solve Python challenges at in-world terminals before the countdown ends. | Video coming soon | [`src/cyberpunk-coding-game-kimi-k3`](src/cyberpunk-coding-game-kimi-k3) |
+| Build an Interactive ChatGPT & MCP App with Skybridge | Interactive dataset explorer MCP app built with Skybridge 2, React 19, and Tailwind CSS v4, featuring scatter plots, filterable data tables, and agent skills. | Video coming soon | [`src/skybridge-dataset-visualizer`](src/skybridge-dataset-visualizer) |
+| TypeSafe Jev: System 1 AI Decision Engine with Python | Ultra-fast 100ms non-autoregressive decision model demo: binary triage, categorical routing, and calibrated agent guardrails. | Video coming soon | [`src/jev-system-one-model-python-demo`](src/jev-system-one-model-python-demo) |
 
 ## Video Index
 
@@ -22,6 +23,7 @@ These are the Season 3 source folders currently in this repo. The published vide
 
 | Video | What you'll find | Watch | Source code |
 | --- | --- | --- | --- |
+| [Build a Cyberpunk Coding Game with Kimi K3](https://youtu.be/PfXwEcq6fGA) | A self-contained Godot 4 cyberpunk first-person coding game: solve Python challenges at in-world terminals before the countdown ends. | [![Build a Cyberpunk Coding Game with Kimi K3](assets/thumbnails/cyberpunk-coding-game-kimi-k3.png)](https://youtu.be/PfXwEcq6fGA) | [`src/cyberpunk-coding-game-kimi-k3`](src/cyberpunk-coding-game-kimi-k3) |
 | [How to Use Hetzner's Free LLM Inference API with Python & OpenCode](https://youtu.be/OSuI3Iy68KQ) | Hands-on walkthrough of Hetzner's experimental inference platform with Qwen 3.6: basic OpenAI SDK requests, batch support ticket classification, 150k long-context needle in a haystack, multimodal vision, and agentic workflows with OpenCode. | [![How to Use Hetzner's Free LLM Inference API with Python & OpenCode](assets/thumbnails/hetzner-experiments-demo.png)](https://youtu.be/OSuI3Iy68KQ) | [`src/hetzner-experiments-demo`](src/hetzner-experiments-demo) |
 | [I Built an Agentic RPG with MiniMax + Pi](https://youtu.be/sli6ZbEO13k) | Browser RPG (Phaser + React) where a MiniMax coding agent fights GitHub issues as monsters. Each tool call becomes an attack animation; victory = a real PR merged. | [![I Built an Agentic RPG with MiniMax + Pi](assets/thumbnails/minimax-dev-rpg.png)](https://youtu.be/sli6ZbEO13k) | [`src/minimax-dev-rpg`](src/minimax-dev-rpg) |
 | [How to Build a Serverless AI Agent with Pi](https://youtu.be/EEoMnEcXltk) | Hub-and-spoke Pi agent fleet with a hub coding agent delegating to specialized sub-agents, deployed serverlessly to the cloud. | [![How to Build a Serverless AI Agent with Pi](assets/thumbnails/pi-agent-fleet.png)](https://youtu.be/EEoMnEcXltk) | [`src/pi-agent-fleet`](src/pi-agent-fleet) |
