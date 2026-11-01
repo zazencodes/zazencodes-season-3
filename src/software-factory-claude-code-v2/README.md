@@ -11,7 +11,7 @@ hands you the rest.
 Open Claude Code in your project and paste:
 
 ```text
-Build me a software factory inside this project following the provided reference (below) closely:
+Install this software factory in this project from the reference repository:
 
 https://github.com/zazencodes/zazencodes-season-3/tree/main/src/software-factory-claude-code-v2
 ```
@@ -103,19 +103,11 @@ factory/
   dashboard.html              the board
 examples/jobs/                finished jobs from a real run
 INSTALL.md                    instructions for the installing agent
-BUILD_PROMPT.md               the prompt that builds v2 on top of v1
 DESIGN.md                     how it works and why
 ```
 
 [`DESIGN.md`](DESIGN.md) explains each decision and lists what changed from
 [v1](../software-factory-claude-code).
-
-## BUILD_PROMPT.md
-
-The prompt from the video that builds v2 on top of
-[v1](../software-factory-claude-code). It's self-contained: paste it into
-Claude Code in a GitHub repo and it builds the factory from v1's code. If
-you're installing v2, use the install prompt above instead.
 
 ## Dashboard
 
