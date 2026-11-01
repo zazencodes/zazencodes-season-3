@@ -3,6 +3,13 @@ STATUS: BLOCKED
 # Build: Add multiply, divide and power to calc.py
 
 ## Summary
+- Blocked: the spec puts the tests in `tests/test_calc.py`, which is a protected path
+- `calc.py` has `multiply`, `divide` and `power`, matching the spec
+- The tests are in a new `tests/test_multiply_divide_power.py`, and all 7 tests pass
+- Round 3 made no code change and no new commit while it waits for a human decision
+- Options: amend the spec to allow the new file, or unprotect `tests/test_calc.py`
+
+## Changes
 `calc.py` has `multiply(a, b)`, `divide(a, b)` and `power(a, b)` after `add` and `subtract`, and the code matches the spec. The tests for the three new functions are in `tests/test_multiply_divide_power.py` (new file), not in `tests/test_calc.py`, because `tests/test_calc.py` is a protected path in `factory/config.json` and the spec asks to change it.
 
 The spec and the protected list cannot both be met. I have not changed the code to resolve this, because the choice belongs to you (see Blocked).

@@ -11,6 +11,8 @@ pipeline. Scripts handle the deterministic stages, such as running the tests,
 moving state and merging. Agents do the judgment in between: whether a request
 is worth building, what exactly to build, the code itself, and whether it's
 good. Each stage leaves a file behind, so you can see what happened and why.
+Every step's file opens with a `## Summary` of three to five bullets, so a human can
+skim a job on the dashboard and read the detail only where it matters.
 
 ## Pieces
 

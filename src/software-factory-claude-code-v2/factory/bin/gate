@@ -71,8 +71,14 @@ def gate(job_id, merge):
     name = "merge-checks" if merge else "checks"
     (round_dir / f"{name}.log").write_text(log)
     tail = "\n".join(log.rstrip().splitlines()[-TAIL:])
+    summary = [
+        f"checks.sh {'passed' if code == 0 else f'failed with exit {code}'} in {seconds}s",
+        f"Protected paths: {'changed: ' + ', '.join(protected) if protected else 'none changed'}",
+        f"Commit {commit[:7]}" + (", synced with the latest main before merging" if merge else ""),
+    ]
     (round_dir / f"{name}.md").write_text(
         f"GATE: {verdict}\nCOMMIT: {commit}\n\n"
+        "## Summary\n" + "\n".join(f"- {s}" for s in summary) + "\n\n"
         "## Protected paths\n"
         + ("\n".join(f"- {p}" for p in protected) if protected else "None changed.")
         + f"\n\n## checks.sh\nExit {code} in {seconds}s. Last {TAIL} lines of {name}.log:\n\n```\n{tail}\n```\n"

@@ -2,6 +2,13 @@
 
 > Issue #2: Show a history of results on the page
 
+## Summary
+- Adds a `<ul id="history">` list under `#result` in `web/index.html`, the only file that changes
+- The existing submit handler adds an entry like `2 + 3 = 5` at the top and keeps at most 5
+- CSS hides the list until the first submit
+- No storage, `innerHTML`, extra UI or Python changes
+- Checked in the browser, since the page has no JavaScript test runner
+
 ## Context
 
 - `web/index.html` is the whole app: a static page with inline CSS and one inline `<script>`. It has no build step and no JavaScript test runner.

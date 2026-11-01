@@ -1,5 +1,12 @@
 VERDICT: PASS
 
+## Summary
+- Passed with no findings
+- `subtract` matches the spec: placed after `add`, same style, body `return a - b`
+- `tests/test_subtract.py` follows the `tests/test_calc.py` layout, which stays unchanged
+- Re-ran the unit tests as a spot check: 2 tests, OK
+- Optional follow-up: a negative-result test such as `subtract(2, 7) == -5`
+
 ## Findings
 None.
 

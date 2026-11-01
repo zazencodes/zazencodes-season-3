@@ -3,6 +3,13 @@ RISK: low
 SURFACES: none
 RESCOPED: yes
 
+## Summary
+- Accepted after rescoping: the issue bundles too many features for one pull request
+- This first slice adds `multiply`, `divide` and `power` to `calc.py`
+- Dividing by zero raises a `ValueError`
+- Tests go in `tests/test_calc.py`, following the `AddTest` style
+- Scientific functions, the parser, the REPL and the page are left for later
+
 ## Scope
 Build the first slice of the calculator in `calc.py`: three new functions, each with unit tests in `tests/test_calc.py`.
 

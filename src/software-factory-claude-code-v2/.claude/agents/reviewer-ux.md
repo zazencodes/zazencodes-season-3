@@ -57,6 +57,9 @@ If the branch has no user-facing change, write PASS and say so.
 ```markdown
 VERDICT: PASS | CHANGES
 
+## Summary
+- 3 to 5 short bullets: what happened in this step and why
+
 ## Findings
 1. <path:line or page> <the problem, who it affects, and the fix you want>
 
@@ -67,6 +70,8 @@ Non-blocking observations. Optional.
 - The first line must be exactly `VERDICT: PASS` or `VERDICT: CHANGES`.
 - Use CHANGES only for problems a visitor would actually hit that are in scope
   for the spec. Put matters of taste under Notes.
+- `## Summary` comes right after the header: 3 to 5 short bullets a human can
+  skim on the dashboard. The detail goes in the sections below it.
 - Under Findings, write "None." when there are none.
 
 When you're done, reply with one line: the first line of review-ux.md.

@@ -1,5 +1,12 @@
 APPROVE
 
+## Summary
+- Approved: the change does exactly what issue #1 asks
+- Round 1 gate passed and the code review passed with no findings
+- All 9 acceptance criteria are met
+- The test lives in a new file because `tests/test_calc.py` is protected
+- Touches nothing sensitive: no dependencies, CI, deploy config, data or access code
+
 ## Why
 The change adds `subtract(a, b)` to `calc.py` and a test for it in a new `tests/test_subtract.py`. That is exactly what issue #1 asks for and nothing more. Round 1 says `GATE: PASS` at HEAD `2934f5d`, the only review says `VERDICT: PASS` with no findings, and the change touches nothing sensitive: no dependencies, CI, deploy config, data or access code. Intake put the test in `tests/test_calc.py`, but that file is a protected path, so the spec put it in a new test file instead. This still meets the scope and the AGENTS.md rule that every function has a test in `tests/`.
 

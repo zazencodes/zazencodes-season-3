@@ -1,5 +1,12 @@
 VERDICT: PASS
 
+## Summary
+- Passed with no findings
+- Browser checks at 420px and 360px: hidden on first load, newest first, capped at 5
+- Long numbers wrap without sideways scrolling, and tab order is unchanged
+- Non-blocking: no `aria-live` announcements, and `list-style: none` drops list semantics in Safari
+- Decimal inputs are blocked by the existing `step=1`, which predates this change
+
 ## Findings
 None.
 

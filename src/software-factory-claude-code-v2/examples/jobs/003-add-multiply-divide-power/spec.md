@@ -2,6 +2,13 @@
 
 > Issue #3: Add multiply, divide, power, square root, logarithms, trig functions, a full expression parser and a REPL
 
+## Summary
+- Adds `multiply`, `divide` and `power` to `calc.py` after `add` and `subtract`
+- Dividing by zero, including `0.0`, raises `ValueError("cannot divide by zero")`
+- Adds `MultiplyTest`, `DivideTest` and `PowerTest` to `tests/test_calc.py`
+- Only `calc.py` and `tests/test_calc.py` change
+- Scientific functions, the parser, the REPL and the page stay out of scope
+
 ## Context
 
 - `calc.py` (repo root) is the calculator module. It is a docstring plus two pure functions, `add(a, b)` and `subtract(a, b)`. Each returns the result of the Python operator directly. No validation, no classes.

@@ -1,5 +1,12 @@
 ESCALATE
 
+## Summary
+- Escalated: the builder is blocked
+- The spec requires the tests in `tests/test_calc.py`, a protected path
+- Round 2's code review says a human must decide
+- Choose (a) amend the spec to allow `tests/test_multiply_divide_power.py`, or (b) remove `tests/test_calc.py` from `protected_paths`
+- `origin/main` has moved (PR #7), so a rebase or merge is needed before the PR merges
+
 ## Why
 The builder is blocked:
 

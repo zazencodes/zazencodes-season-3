@@ -55,6 +55,9 @@ RISK: low | medium | high
 SURFACES: ui, security | ui | security | none
 RESCOPED: yes | no
 
+## Summary
+- 3 to 5 short bullets: what happened in this step and why
+
 ## Scope
 For ACCEPT: what will be built, in a few lines, and what is left out. This is
 the brief the spec writer follows, so make it specific about behaviour. Leave
@@ -70,6 +73,8 @@ For NEEDS-INFO only: numbered questions for the author.
 - The four header lines come first, then a blank line. Write `RISK`,
   `SURFACES` and `RESCOPED` on every decision; for NEEDS-INFO and REJECT,
   write your best guess.
+- `## Summary` comes right after the header: 3 to 5 short bullets a human can
+  skim on the dashboard. The detail goes in the sections below it.
 - `RESCOPED: yes` when your Scope differs from what the issue asked for.
 - The factory posts everything below the header as a comment on the issue, so
   write it for the issue's author: plain, short, and polite.

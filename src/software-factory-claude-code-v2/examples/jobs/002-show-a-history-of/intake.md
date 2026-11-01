@@ -3,6 +3,13 @@ RISK: low
 SURFACES: ui
 RESCOPED: no
 
+## Summary
+- Accepted as a low-risk UI change to `web/index.html` only
+- Shows the last 5 calculations under the result, newest first, as `a + b = sum`
+- History lives in page memory and clears on reload
+- Entries are rendered with `textContent`, not `innerHTML`
+- Leaves out persistence, a clear button, deleting entries and any `calc.py` change
+
 ## Scope
 Change `web/index.html` only.
 

@@ -1,5 +1,12 @@
 VERDICT: PASS
 
+## Summary
+- Passed with no findings
+- Only `web/index.html` changed, with the markup, CSS and handler code the spec asks for
+- Entries use `createElement` and `textContent`, with no `innerHTML` or storage
+- The list keeps 5 entries, newest first
+- Optional: rename `history`, which shadows `window.history` in the handler
+
 ## Findings
 None.
 

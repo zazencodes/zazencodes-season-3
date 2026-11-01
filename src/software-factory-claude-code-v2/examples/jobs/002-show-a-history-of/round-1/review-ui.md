@@ -1,5 +1,12 @@
 VERDICT: PASS
 
+## Summary
+- Passed with no findings
+- The history list fits the page: no bullets, inherited font, muted text under the result
+- The new `#666` colour passes WCAG AA contrast (about 5.7:1)
+- No overflow at 1280px or 375px after six submits
+- The awkward form wrap at 420px predates this change
+
 ## Findings
 None.
 

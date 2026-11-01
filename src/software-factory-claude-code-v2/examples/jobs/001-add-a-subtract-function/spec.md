@@ -2,6 +2,13 @@
 
 > Issue #1: Add a subtract function
 
+## Summary
+- Adds `subtract(a, b)` to `calc.py` right after `add`, in the same style
+- Tests it in a new `tests/test_subtract.py`, asserting `subtract(5, 3) == 2`
+- The test can't go in `tests/test_calc.py` as intake suggested, because that file is protected
+- Only `calc.py` and the new test file change
+- No UI, input validation or other operations
+
 ## Context
 
 - `calc.py` (repo root) is a small standard-library module. It has a module

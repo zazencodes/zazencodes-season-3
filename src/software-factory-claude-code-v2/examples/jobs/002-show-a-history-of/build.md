@@ -3,6 +3,13 @@ STATUS: READY
 # Build: Show a history of results on the page
 
 ## Summary
+- The page now lists the last 5 calculations under the result, newest first
+- Each entry reads `a + b = sum` and is built with `textContent`
+- The list stays hidden until the first submit and resets on reload
+- Round 1 changed only `web/index.html` (commit `5ab9cce`) and opened draft PR #7
+- Unit tests, `checks.sh` and the browser checks all pass
+
+## Changes
 The page now keeps the last 5 calculations in memory and shows them in a list under the result line, newest first. Each entry reads `a + b = sum`, built with `textContent`. The list is hidden with `#history:empty { display: none; }` until the first submit, and it resets on reload.
 
 Files changed (commit `5ab9cce`):

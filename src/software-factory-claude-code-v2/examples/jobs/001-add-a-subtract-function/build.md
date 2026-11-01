@@ -3,6 +3,13 @@ STATUS: READY
 # Build: Add a subtract function
 
 ## Summary
+- `calc.py` now has `subtract(a, b)` after `add`, returning `a - b`
+- New `tests/test_subtract.py` asserts `subtract(5, 3) == 2`
+- `tests/test_calc.py` is untouched because it is a protected path
+- Round 1 committed `2934f5d` and opened draft PR #6
+- All acceptance criteria and `checks.sh` pass
+
+## Changes
 `calc.py` now defines `subtract(a, b)` directly after `add`, with no docstring and the one-line body `return a - b`. A new test file `tests/test_subtract.py` holds `SubtractTest.test_subtract`, which asserts `subtract(5, 3) == 2`. `tests/test_calc.py` is unchanged because it is a protected path. No UI was changed, so no dev server or browser check was needed.
 
 Files changed (vs `main`):

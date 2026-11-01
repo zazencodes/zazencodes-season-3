@@ -1,5 +1,12 @@
 APPROVE
 
+## Summary
+- Approved: a small change to `web/index.html` only
+- Adds an in-memory list of the last 5 calculations, newest first
+- Round 1 gate passed and all three reviews (code, UI, UX) passed
+- All 10 acceptance criteria are met
+- Touches nothing in money, access, deploy, data or dependencies
+
 ## Why
 A small change to `web/index.html` only. It adds an in-memory list of the last 5 calculations, newest first, built with `createElement` and `textContent` and hidden by `:empty` until the first submit. The round 1 gate passed, all three reviews passed, and none of their Notes is a real problem (they cover optional a11y polish, a variable that shadows `window.history` inside the callback, and the existing `step=1` behaviour). It touches nothing in money, access, deploy, data, or dependencies, and it stays inside intake's Scope.
 

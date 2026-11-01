@@ -59,6 +59,9 @@ Tailor these lists to the project: what must a human always see here?
 ```markdown
 APPROVE | ESCALATE
 
+## Summary
+- 3 to 5 short bullets: what happened in this step and why
+
 ## Why
 Two or three sentences.
 
@@ -69,6 +72,9 @@ Two or three sentences.
 Only when you escalate: the exact decision or check you need from them, and the
 files to look at.
 ```
+
+`## Summary` comes right after the header: 3 to 5 short bullets a human can
+skim on the dashboard. The detail goes in the sections below it.
 
 The first line must be exactly `APPROVE` or `ESCALATE`. On ESCALATE, the
 factory posts everything below it as a comment on the PR.

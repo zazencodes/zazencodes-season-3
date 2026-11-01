@@ -125,7 +125,8 @@ cd factory && python3 -m http.server
 
 Open <http://localhost:8000/dashboard.html>. Each job is a card with its issue
 and PR, a row of gate and review chips per round, its risk, builder model, cost
-and time. Click a card to read every file the job wrote. To see the example
+and time. Click a card to read every file the job wrote; each one opens with a
+short summary of what happened in that step. To see the example
 jobs, copy `examples/jobs/` to `factory/jobs/` first.
 
 Cost is the API-equivalent price of each job's agents, read from Claude Code's

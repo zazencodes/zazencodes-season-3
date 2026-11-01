@@ -215,6 +215,15 @@
   .verdict.warn { color: var(--changes); background: color-mix(in srgb, var(--changes) 16%, transparent); }
   .verdict.stop { color: var(--human); background: color-mix(in srgb, var(--human) 16%, transparent); }
   .note { color: var(--faint); font-size: 13px; }
+  .md .summary {
+    background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+    padding: 12px 16px 4px; margin: 0 0 22px;
+  }
+  .md .summary h2 {
+    margin: 0 0 6px; font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--muted);
+  }
+  .md .summary ul { margin: 0 0 .6em; }
 
   footer {
     padding: 0 32px 32px; font-family: var(--mono); font-size: 11px; color: var(--faint);
@@ -577,8 +586,21 @@ function inline(s) {
   return s.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${codes[i]}</code>`)
 }
 
+// Every step's file has a `## Summary` of a few bullets; show it first, in a box.
+function splitSummary(lines) {
+  const start = lines.findIndex((l) => /^##\s+Summary\s*$/.test(l))
+  if (start === -1) return { lines, summary: null }
+  let end = start + 1
+  while (end < lines.length && !/^#{1,2}\s/.test(lines[end])) end++
+  return {
+    lines: [...lines.slice(0, start), ...lines.slice(end)],
+    summary: lines.slice(start + 1, end).join('\n'),
+  }
+}
+
 function markdown(src) {
-  const lines = src.replace(/\r/g, '').split('\n')
+  const split = splitSummary(src.replace(/\r/g, '').split('\n'))
+  const lines = split.lines
   let i = 0
   let html = ''
   const first = (lines[0] || '').trim()
@@ -591,6 +613,7 @@ function markdown(src) {
     while (i < lines.length && /^[A-Z-]+:\s/.test(lines[i])) extra.push(lines[i++])
     if (extra.length) html += `<div class="head">${esc(extra.join('\n'))}</div>`
   }
+  if (split.summary !== null) html += `<section class="summary"><h2>Summary</h2>${markdown(split.summary)}</section>`
 
   const isList = (l) => /^\s*([-*+]|\d+\.)\s+/.test(l)
   const isBlockStart = (l) => /^(#{1,6}\s|```|\s*>|\|)/.test(l) || isList(l)

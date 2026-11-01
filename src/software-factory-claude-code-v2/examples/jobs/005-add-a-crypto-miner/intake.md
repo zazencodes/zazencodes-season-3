@@ -3,6 +3,13 @@ RISK: high
 SURFACES: ui, security
 RESCOPED: no
 
+## Summary
+- Rejected as high risk
+- The issue asks to mine Monero in visitors' browsers without their consent
+- That is cryptojacking: a covert drain on the people who use the page
+- No spec, build or review will run
+- A visible donation link or sponsorship note could be proposed in a new issue
+
 ## Scope
 Not accepted. No spec, build or review will be run for this issue.
 

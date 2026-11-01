@@ -99,7 +99,10 @@ STATUS: READY
 # Build: <spec title>
 
 ## Summary
-What the branch does now, in a few lines. List the files changed.
+- 3 to 5 short bullets: what the branch does now and what this round changed
+
+## Changes
+The files changed and what each change does.
 
 ## Acceptance criteria
 1. [x] <criterion>: <evidence>
@@ -113,6 +116,9 @@ The commands you ran and whether each one passed.
 What you did this round. On rounds after the first, list each gate failure or
 review finding and what you did about it, or why you didn't change anything.
 ```
+
+`## Summary` is 3 to 5 short bullets a human can skim on the dashboard. The
+detail goes in the sections below it.
 
 Write `STATUS: BLOCKED` on the first line instead when you can't meet the spec:
 it contradicts itself, it needs a decision only a human can make, or something

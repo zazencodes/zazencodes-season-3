@@ -37,6 +37,9 @@ in the main checkout; your one file goes there.
 
 > Issue #<n>: <issue title>
 
+## Summary
+- 3 to 5 short bullets: what happened in this step and why
+
 ## Context
 Where this lives in the codebase: the files, components and data involved, and
 how they work today. Cite paths.
@@ -61,6 +64,8 @@ The approver escalates to a human when one of these is a product decision.
 
 ## Rules
 
+- `## Summary` comes right after the issue line: 3 to 5 short bullets a human
+  can skim on the dashboard. The detail goes in the sections below it.
 - Don't stop to ask. Intake already asked the author everything only they
   could answer. Make the remaining calls yourself and list them under
   Assumptions.
