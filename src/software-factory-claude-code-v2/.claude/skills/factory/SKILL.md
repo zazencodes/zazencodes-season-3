@@ -25,7 +25,7 @@ intake (fable)     → ACCEPT (scope possibly changed) | NEEDS-INFO | REJECT, po
 route (script)     → reviewers + models from risk/surfaces via config.json
 worktree           → factory/<job-id> from origin/<base>
 spec-writer (opus) → spec.md
-builder            → commits; round 1 pushes + opens a draft PR "Closes #<n>"
+builder (opus)     → commits; the first push opens a draft PR "Closes #<n>"
 gate (script)      → checks.sh; FAIL → builder gets the log, no reviewers spawned
 reviewers (routed) → parallel, WAIT FOR ALL; CHANGES → builder → gate → reviewers
 approver (opus)    → APPROVE: sync origin/<base>, gate, gh pr merge
@@ -68,7 +68,7 @@ agent and for the human, not for you. Your context has to last the whole run.
 
 Spawn every agent with the Agent tool, in the background, with
 `subagent_type` set to the agent's name. Pass `model` from `job.json`
-`agents` for the builder and reviewers, and never for intake, spec-writer or
+`agents` for the reviewers, and never for intake, spec-writer, builder or
 approver: their frontmatter sets it. Each agent replies with one line;
 you are notified when it finishes, and you advance that job then. While agents
 run, don't poll and don't wait: end your turn with a one-line status.
@@ -107,7 +107,7 @@ decision:
 **spec.** Spawn `spec-writer` with `<header>`. When it returns,
 `factory/bin/job advance <id> build` and go to **build**.
 
-**build.** Spawn or resume `builder-<id>` (model `agents.builder`) with
+**build.** Spawn or resume `builder-<id>` with
 `<header> Build round <N>. Port: <port>.` plus what this round is for: the
 gate's `round-<N-1>/checks.md`, the reviews in `round-<N-1>/`, or
 `feedback-<k>.md`. When it returns, read `build.md`'s first line:

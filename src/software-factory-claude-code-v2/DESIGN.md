@@ -69,13 +69,15 @@ the author before a spec exists, so the spec writer never stalls on one.
 `medium`, `high`) and surfaces (`ui`, `security`). `factory/bin/route` looks
 them up in `config.json`:
 
-| | builder | code review | ux | ui | security |
-|---|---|---|---|---|---|
-| low | Sonnet | Haiku | | | |
-| medium | Sonnet | Sonnet | | | |
-| high | Opus | Sonnet | | | |
-| + `ui` surface | | | Sonnet | Haiku | |
-| + `security` surface | | | | | Opus |
+| | code review | ux | ui | security |
+|---|---|---|---|---|
+| low | Haiku | | | |
+| medium | Sonnet | | | |
+| high | Sonnet | | | |
+| + `ui` surface | | Sonnet | Haiku | |
+| + `security` surface | | | | Opus |
+
+The builder always runs on Opus.
 
 A low-risk change with no UI runs one Haiku reviewer. Routing is visible in
 one file and changes without touching a prompt.

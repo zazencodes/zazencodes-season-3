@@ -381,7 +381,6 @@ function card(job, rounds) {
   const risk = job.intake?.risk
   const meta = [
     risk ? `<span class="risk-${esc(risk)}">${esc(risk)}</span>` : '',
-    job.agents ? `<span>${esc(job.agents.builder)}</span>` : '',
     `<span>$${Number(job.cost_usd).toFixed(2)}</span>`,
     `<span>${elapsed(job)}</span>`,
   ].join('')

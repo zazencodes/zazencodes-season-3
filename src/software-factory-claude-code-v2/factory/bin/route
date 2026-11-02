@@ -34,18 +34,17 @@ def main(argv):
     intake = job["intake"] or die(f"{job_id} has no intake.md")
     risk = CONFIG["routing"].get(intake["risk"]) or die(
         f"risk {intake['risk']!r} isn't in config.json routing ({', '.join(CONFIG['routing'])})")
-    reviewers = {k: v for k, v in risk.items() if k != "builder"}
+    reviewers = dict(risk)
     for surface in intake["surfaces"]:
         extra = CONFIG["surface_reviewers"].get(surface)
         if extra is None:
             die(f"surface {surface!r} isn't in config.json surface_reviewers ({', '.join(CONFIG['surface_reviewers'])})")
         reviewers.update(extra)
-    agents = {"builder": risk["builder"], "reviewers": reviewers}
+    agents = {"reviewers": reviewers}
     res = subprocess.run([job_bin, "agents", job_id, json.dumps(agents)], capture_output=True, text=True)
     if res.returncode != 0:
         die(res.stderr.strip())
-    print(f"{job_id}: builder {agents['builder']}, reviewers "
-          + ", ".join(f"{k} {v}" for k, v in reviewers.items()))
+    print(f"{job_id}: reviewers " + ", ".join(f"{k} {v}" for k, v in reviewers.items()))
 
 
 if __name__ == "__main__":

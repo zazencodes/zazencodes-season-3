@@ -37,7 +37,7 @@ route (script)    picks reviewers and models from config.json
         ▼
 spec-writer (opus) → spec.md
         ▼
-builder (sonnet, opus when risky) → commits, pushes, opens a draft PR "Closes #n"
+builder (opus) → commits, pushes, opens a draft PR "Closes #n"
         ▼            ▲
 gate (script) ─FAIL──┤  factory/checks.sh; no reviewer runs on a failing build
         ▼ PASS       │
@@ -88,7 +88,7 @@ you a copy when you [sign up to my newsletter](https://zazencodes.com/newsletter
   agents/
     intake.md                 fable    worth building? at what scope? risk + surfaces
     spec-writer.md            opus     spec.md
-    builder.md                routed   code, commits, the PR, build.md
+    builder.md                opus     code, commits, the PR, build.md
     reviewer-code.md          routed   correctness, simplicity, tests
     reviewer-security.md      opus     only when intake flags `security`
     reviewer-ux.md            sonnet   only when intake flags `ui`
@@ -116,8 +116,8 @@ cd factory && python3 -m http.server
 ```
 
 Open <http://localhost:8000/dashboard.html>. Each job is a card with its issue
-and PR, a row of gate and review chips per round, its risk, builder model, cost
-and time. Click a card to read every file the job wrote; each one opens with a
+and PR, a row of gate and review chips per round, its risk, cost and
+time. Click a card to read every file the job wrote; each one opens with a
 short summary of what happened in that step. To see the example
 jobs, copy `examples/jobs/` to `factory/jobs/` first.
 
