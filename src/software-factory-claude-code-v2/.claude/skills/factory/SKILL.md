@@ -1,6 +1,6 @@
 ---
 name: factory
-description: Run the software factory on GitHub issues. Use when the user types /factory run, /factory issue <n>, or /factory followed by anything else (a question, feedback on a job, or a new feature). The session that runs it becomes the one orchestrator for every job.
+description: Run the software factory on GitHub issues. Use when the user types /factory run, /factory run <n>, or /factory followed by anything else (a question, feedback on a job, or a new feature). The session that runs it becomes the one orchestrator for every job.
 ---
 
 # Factory
@@ -14,7 +14,7 @@ tell the user; never work around it.
 
 ```
 /factory run          drain the queue: every open `factory` issue, `concurrency` at a time; also resumes
-/factory issue <n>    run one issue now
+/factory run <n>      run one issue now
 /factory <anything>   talk to the factory: ask about jobs, give feedback, file a feature
 ```
 
@@ -174,7 +174,7 @@ the current round; `approve` respawns the approver; `merging` runs
 `factory/bin/job merge <id>`. A `needs-info` job the author has answered shows
 as `resume`: run `factory/bin/job advance <id> intake` and go to **intake**.
 
-## /factory issue <n>
+## /factory run <n>
 
 Run one issue with the same steps. If `factory/bin/job queue` shows a job for
 it, resume that job; otherwise `factory/bin/job create <n>`. Finish with the
@@ -221,7 +221,7 @@ new feature, ask.
 - **An answer to a `needs-info` question**: post their words on the issue with
   `gh issue comment <n> --body "<their answer>"`, then
   `factory/bin/job advance <id> intake` and go to **intake**.
-- **A new feature**: create the issue, then do **/factory issue <n>** with the
+- **A new feature**: create the issue, then do **/factory run <n>** with the
   new number:
 
   ```bash

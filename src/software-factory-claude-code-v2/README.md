@@ -55,7 +55,7 @@ One Claude Code session orchestrates every job, `concurrency` at a time
 
 ```
 /factory run          drain the queue: every open `factory` issue, `concurrency` at a time; also resumes
-/factory issue <n>    one issue now
+/factory run <n>      one issue now
 /factory <anything>   talk to the factory: ask about jobs, give feedback, file a feature
 ```
 
