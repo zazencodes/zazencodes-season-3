@@ -36,9 +36,10 @@ other jobs.
 4. When reviews asked for changes, every `review-*.md` in the round folder the
    message names. Address each finding in a `VERDICT: CHANGES` file. Notes in
    `VERDICT: PASS` files are optional.
-5. When you are started for a rework, the `rework-*.md` file the prompt names
-   (feedback from the human on the PR), plus the existing `build.md`,
-   `decision.md` and every round folder, so you know the history.
+5. When the prompt names a `feedback-*.md` file, read it: the user's feedback
+   after the job escalated. Read `decision.md` and every round folder too, so
+   you know the history. The feedback comes before the reviews and the spec
+   where they disagree.
 
 ## Build
 
@@ -83,9 +84,9 @@ command you ran and its result, or what the page showed.
   --porcelain` should print nothing when you finish.
 - Push with `git push -u origin <branch>`. Push only the job branch, never
   anything else.
-- In round 1, open the PR as a draft:
+- If the branch has no PR yet (`gh pr view <branch>` fails), open it as a draft:
   `gh pr create --draft --base <base> --head <branch> --title "<spec title>" --body "Closes #<issue>"`
-  followed by a blank line and your Summary. In later rounds, just push; the PR
+  followed by a blank line and your Summary. Once it exists, just push; the PR
   updates itself. Never mark the PR ready and never merge it.
 
 ## Write build.md

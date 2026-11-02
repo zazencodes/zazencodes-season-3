@@ -262,8 +262,7 @@
 <footer>
   <span>/factory run</span>
   <span>/factory issue &lt;n&gt;</span>
-  <span>/factory &lt;feature&gt;</span>
-  <span>/factory rework &lt;n&gt;</span>
+  <span>/factory &lt;anything&gt;</span>
   <span id="totals"></span>
 </footer>
 
@@ -398,7 +397,7 @@ function card(job, rounds) {
       <div class="links">${links(job)}</div>
       ${rounds.length ? `<div class="rounds">${rounds.join('')}</div>` : ''}
       <div class="meta">${meta}</div>
-      ${human ? `<div class="hint">${job.pr ? `merge PR #${job.pr} to approve` : 'comment on the issue'}<br>/factory rework ${job.issue}</div>` : ''}
+      ${human ? `<div class="hint">${job.pr ? `merge PR #${job.pr} to approve<br>` : ''}or give feedback: /factory &lt;anything&gt;</div>` : ''}
     </article>`
 }
 
@@ -479,7 +478,7 @@ function fileRank(path) {
   if (ORDER.includes(path)) return [0, ORDER.indexOf(path), path]
   const round = path.match(/^round-(\d+)\/(.+)\.md$/)
   if (round) return [2, Number(round[1]) * 10 + ROUND_ORDER.indexOf(round[2]), path]
-  return [1, 0, path] // intake-<k>.md, rework-<k>.md
+  return [1, 0, path] // intake-<k>.md, feedback-<k>.md
 }
 
 function sortFiles(files) {

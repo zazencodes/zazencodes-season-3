@@ -11,7 +11,7 @@ Usage:
   job create <issue>             new job for an open `factory` issue; prints the job id
   job advance <job> <stage>      move a job to <stage>, or refuse
   job merge <job>                APPROVE → sync with the base branch, gate, merge the PR
-  job rework <job>               needs-human → build, with your PR comments as rework-<k>.md
+  job feedback <job>             needs-human → build, with your feedback (stdin) as feedback-<k>.md
   job agents <job> <json>        record the routed agent set (called by factory/bin/route)
   job sync <job>                 refresh reviews, gate and cost from the job's files
   job summary [<job>...]         table of jobs: issue, stage, PR, cost, time
@@ -454,9 +454,9 @@ def advance(job, stage):
         if stage == "merged":
             require(job["pr"] and pr_state(job) == "MERGED", "the PR isn't merged")
         else:
-            rework = sorted(d.glob("rework-*.md"))
-            require(rework and rework[-1].stat().st_mtime > (d / "decision.md").stat().st_mtime,
-                    "use `job rework` to send a job back to the builder")
+            feedback = sorted(d.glob("feedback-*.md"))
+            require(feedback and feedback[-1].stat().st_mtime > (d / "decision.md").stat().st_mtime,
+                    "use `job feedback` to send a job back to the builder")
             job["round_limit"] = job["round"] + CONFIG["max_rounds"]
             next_round(job)
             label("issue", job["issue"], remove=LABELS["needs_human"])
@@ -536,8 +536,8 @@ def cmd_queue():
             rows.append(("resume" if ready else "wait", n, j["id"], j["stage"],
                          "author replied" if ready else "waiting for the author"))
         elif j["stage"] == "needs-human":
-            rows.append(("wait", n, j["id"], j["stage"], f"merge PR #{j['pr']} or /factory rework {n}"
-                         if j["pr"] else f"/factory rework {n} once you've commented"))
+            rows.append(("wait", n, j["id"], j["stage"], f"merge PR #{j['pr']}, or give feedback"
+                         if j["pr"] else "give feedback"))
         elif j["stage"] == "rejected":
             rows.append(("skip", n, j["id"], j["stage"], f"rejected; delete factory/jobs/{j['id']} to retry"))
         elif j["stage"] == "merged":
@@ -589,38 +589,16 @@ def cmd_merge(job):
     print(f"{job['id']}: merged PR #{job['pr']}")
 
 
-def cmd_rework(job):
+def cmd_feedback(job, text):
     if job["stage"] != "needs-human":
         die(f"{job['id']} is in {job['stage']}, not needs-human")
-    since = datetime.fromtimestamp((job_dir(job["id"]) / "decision.md").stat().st_mtime, timezone.utc)
-    notes = []
-    if job["pr"]:
-        pr = gh_json("pr", "view", str(job["pr"]), "--json", "comments,reviews")
-        repo = gh_json("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
-        inline = gh_json("api", f"repos/{repo}/pulls/{job['pr']}/comments")
-        for c in pr["comments"]:
-            notes.append((c["createdAt"], c["author"]["login"], None, c["body"]))
-        for r in pr["reviews"]:
-            notes.append((r["submittedAt"], r["author"]["login"], None, r["body"]))
-        for c in inline:
-            notes.append((c["created_at"], c["user"]["login"], f"{c['path']}:{c.get('line') or c.get('original_line')}", c["body"]))
-    else:
-        issue = fetch_issue(job["issue"])
-        notes = [(c["createdAt"], c["author"]["login"], None, c["body"]) for c in issue["comments"]]
-    notes = [n for n in notes
-             if n[1] == operator() and n[3].strip() and not n[3].startswith(MARKER)
-             and datetime.fromisoformat(n[0].replace("Z", "+00:00")) > since]
-    if not notes:
-        die(f"no comments from @{operator()} on {'PR #' + str(job['pr']) if job['pr'] else 'the issue'} "
-            "since the job escalated; write your feedback there first")
+    if not text.strip():
+        die("no feedback on stdin")
     d = job_dir(job["id"])
-    k = len(list(d.glob("rework-*.md"))) + 1
-    lines = [f"# Rework {k}", "", f"Feedback from @{operator()} after the job escalated.", ""]
-    for when, _, where, body in sorted(notes):
-        lines += [f"## {where or 'General'} ({when})", "", body.strip(), ""]
-    (d / f"rework-{k}.md").write_text("\n".join(lines))
+    k = len(list(d.glob("feedback-*.md"))) + 1
+    (d / f"feedback-{k}.md").write_text(f"# Feedback {k}\n\nFrom @{operator()} after the job escalated.\n\n{text.strip()}\n")
     save(advance(sync(job), "build"))
-    print(f"{job['id']}: rework-{k}.md, round {job['round']}")
+    print(f"{job['id']}: feedback-{k}.md, round {job['round']}")
 
 
 def cmd_agents(job, spec):
@@ -666,8 +644,8 @@ def main(argv):
             print(f"{job['id']}: {job['stage']} (round {job['round']})")
         elif cmd == "merge" and len(args) == 1:
             cmd_merge(resolve(args[0]))
-        elif cmd == "rework" and len(args) == 1:
-            cmd_rework(resolve(args[0]))
+        elif cmd == "feedback" and len(args) == 1:
+            cmd_feedback(resolve(args[0]), sys.stdin.read())
         elif cmd == "agents" and len(args) == 2:
             cmd_agents(sync(resolve(args[0])), args[1])
         elif cmd == "sync" and len(args) == 1:

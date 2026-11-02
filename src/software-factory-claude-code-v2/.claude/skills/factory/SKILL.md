@@ -1,6 +1,6 @@
 ---
 name: factory
-description: Run the software factory on GitHub issues. Use when the user types /factory run, /factory issue <n>, /factory rework <n>, or /factory <feature>. The session that runs it becomes the one orchestrator for every job.
+description: Run the software factory on GitHub issues. Use when the user types /factory run, /factory issue <n>, or /factory followed by anything else (a question, feedback on a job, or a new feature). The session that runs it becomes the one orchestrator for every job.
 ---
 
 # Factory
@@ -15,8 +15,7 @@ tell the user; never work around it.
 ```
 /factory run          drain the queue: every open `factory` issue, `concurrency` at a time; also resumes
 /factory issue <n>    run one issue now
-/factory <feature>    create the issue (labeled), then run it
-/factory rework <n>   send a needs-human job back to the builder with your PR comments
+/factory <anything>   talk to the factory: ask about jobs, give feedback, file a feature
 ```
 
 ## The pipeline
@@ -57,7 +56,7 @@ through the scripts. `factory/jobs/` is gitignored runtime state.
 <repo>/factory/jobs/<job-id>/round-<N>/checks.md        the gate's verdict for round N
 <repo>/factory/jobs/<job-id>/round-<N>/review-<r>.md    one per routed reviewer
 <repo>/factory/jobs/<job-id>/decision.md                APPROVE or ESCALATE
-<repo>/factory/jobs/<job-id>/rework-<k>.md              your PR feedback, from /factory rework
+<repo>/factory/jobs/<job-id>/feedback-<k>.md            the user's feedback on an escalated job
 <repo>/../<name>-factory/<job-id>/             the job's worktree, on factory/<job-id>
 ```
 
@@ -111,7 +110,7 @@ decision:
 **build.** Spawn or resume `builder-<id>` (model `agents.builder`) with
 `<header> Build round <N>. Port: <port>.` plus what this round is for: the
 gate's `round-<N-1>/checks.md`, the reviews in `round-<N-1>/`, or
-`rework-<k>.md`. When it returns, read `build.md`'s first line:
+`feedback-<k>.md`. When it returns, read `build.md`'s first line:
 
 - `STATUS: READY`: `factory/bin/job advance <id> gate`, then go to **gate**. If
   `advance` refuses (nothing pushed, no PR, a dirty tree), resume the builder
@@ -163,8 +162,8 @@ A job is finished for this run when it reaches `merged`, `rejected`,
 3. Each time a job finishes, start the next queued issue.
 4. When nothing is queued or running, print `factory/bin/job summary <ids>`
    for the jobs this run touched, then list what waits on a human: PRs to
-   review (merge one to approve it, or comment and run `/factory rework <n>`)
-   and questions waiting on authors.
+   review (merge one to approve it, or give feedback with `/factory`) and
+   questions waiting on authors.
 
 **Resuming.** State lives in files, so a new session picks up where a dead one
 stopped. For a `resume` job, run its stage's step again: `intake` and `spec`
@@ -181,24 +180,40 @@ Run one issue with the same steps. If `factory/bin/job queue` shows a job for
 it, resume that job; otherwise `factory/bin/job create <n>`. Finish with the
 summary line for that job.
 
-## /factory <feature>
+## /factory <anything>
 
-Create the issue, then run it:
+Anything else after `/factory` is the user talking to the factory. Work out
+what they want and act on it. Every change of state still goes through the
+scripts. When it isn't clear which job they mean, or whether it's feedback or a
+new feature, ask.
 
-```bash
-gh issue create --label factory --title "<short imperative title>" --body "<the feature, verbatim>"
-```
+- **A question** (status, cost, why a job escalated, what a reviewer said):
+  answer from `factory/bin/job summary`, `job.json` and the job's files. Here
+  you may read a file in full when the answer is in it.
+- **What needs them**: run `factory/bin/job queue`. For each `wait` line, say
+  what the job is waiting for: the question in `decision.md` for `needs-human`,
+  the question in `intake.md` for `needs-info`.
+- **Feedback on a `needs-human` job**: pass their words verbatim on stdin:
 
-Then do **/factory issue <n>** with the new number.
+  ```bash
+  factory/bin/job feedback <n> <<'EOF'
+  <their feedback>
+  EOF
+  ```
 
-## /factory rework <n>
+  It saves `feedback-<k>.md` and starts the next round with a fresh round
+  budget. Go to **build** with
+  `The user gave feedback: read feedback-<k>.md and address it, push, and update build.md for round <N>.`
+  and continue like any job.
+- **An answer to a `needs-info` question**: post their words on the issue with
+  `gh issue comment <n> --body "<their answer>"`, then
+  `factory/bin/job advance <id> intake` and go to **intake**.
+- **A new feature**: create the issue, then do **/factory issue <n>** with the
+  new number:
 
-The job must be in `needs-human`, and the user must have commented on the PR
-(or the issue, if there's no PR). `factory/bin/job rework <n>` writes their
-comments to `rework-<k>.md` and starts the next round with a fresh round
-budget. Then go to **build** with
-`Rework: read rework-<k>.md and address it, push, and update build.md for round <N>.`
-and continue like any job.
+  ```bash
+  gh issue create --label factory --title "<short imperative title>" --body "<the feature, verbatim>"
+  ```
 
 ## Guardrails
 

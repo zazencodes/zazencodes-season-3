@@ -56,11 +56,11 @@ One Claude Code session orchestrates every job, `concurrency` at a time
 ```
 /factory run          drain the queue: every open `factory` issue, `concurrency` at a time; also resumes
 /factory issue <n>    one issue now
-/factory <feature>    create the issue (labeled), then run it
-/factory rework <n>   send an escalated job back to the builder with your PR comments
+/factory <anything>   talk to the factory: ask about jobs, give feedback, file a feature
 ```
 
-You approve by merging the PR on GitHub.
+You approve by merging the PR on GitHub. To change an escalated PR, tell the
+factory what you want with `/factory`.
 
 ## The guide
 

@@ -101,7 +101,8 @@ gated again, because another job may have merged since it was tested.
 **You approve by merging.** The approver merges what it would merge itself and
 escalates the rest with a specific question. An escalated PR is ready for
 review and its issue is labeled `factory:needs-human`. Merge it to approve, or
-comment and run `/factory rework <n>` to send your comments to the builder.
+tell the factory what to change with `/factory <anything>`: your words go to
+the builder as `feedback-<k>.md` and the job runs another round.
 
 **State is files, so runs resume.** Every fact the orchestrator needs is in
 `factory/jobs/`. If the session dies or compacts, a fresh `/factory run` reads

@@ -143,8 +143,8 @@ Then tell the user, in a few lines:
 - Label one or two small issues `factory`, then run `/factory run` in Claude
   Code from the project root.
 - Every job ends as a PR. The approver merges what it approves; the rest wait
-  labeled `factory:needs-human`. Approve one by merging it on GitHub, or
-  comment on it and run `/factory rework <issue>`.
+  labeled `factory:needs-human`. Approve one by merging it on GitHub, or tell
+  the factory what to change with `/factory <anything>`.
 - Intake runs on Fable, once per issue. Depending on their plan, Fable can
   bill to usage credits rather than the plan's included usage.
 - To start carefully, set `concurrency` to 1 in `factory/config.json` and read
