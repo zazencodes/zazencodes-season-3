@@ -16,7 +16,7 @@ Files changed (vs `main`):
 - `calc.py` (+4 lines)
 - `tests/test_subtract.py` (new, 12 lines)
 
-Commit: `2934f5d Add subtract function with test`. Draft PR: https://github.com/zazencodes/software-factory-sandbox/pull/6
+Commit: `2934f5d Add subtract function with test`. Draft PR #6
 
 ## Acceptance criteria
 1. [x] `calc.py` has `def subtract(a, b):` right after `add` with body `return a - b`: `grep -n "def subtract" calc.py` printed `8:def subtract(a, b):`, after `def add` on line 4. `sed -n '1,20p' calc.py` shows `    return a - b` as the only body line.
@@ -27,12 +27,12 @@ Commit: `2934f5d Add subtract function with test`. Draft PR: https://github.com/
 6. [x] `python3 -m unittest tests.test_subtract -v` printed `test_subtract (tests.test_subtract.SubtractTest.test_subtract) ... ok` and `OK`.
 7. [x] `git diff main -- tests/test_calc.py` printed nothing.
 8. [x] `git diff --name-only main` printed `calc.py` and `tests/test_subtract.py` only.
-9. [x] `bash /Users/alex/pro/software-factory-sandbox/factory/checks.sh`, run from the worktree, exited 0 (`Ran 2 tests`, `OK`).
+9. [x] `bash <repo>/factory/checks.sh`, run from the worktree, exited 0 (`Ran 2 tests`, `OK`).
 
 ## Validation
 - `python3 -m unittest tests.test_subtract -v`: pass.
 - `python3 -m unittest discover -s tests -t .`: pass, 2 tests.
-- `bash /Users/alex/pro/software-factory-sandbox/factory/checks.sh` (run from the worktree): exit 0.
+- `bash <repo>/factory/checks.sh` (run from the worktree): exit 0.
 - `git status --porcelain` after commit: empty.
 - No UI criteria, so the dev server and `agent-browser` were not used (port 5110 was not needed).
 

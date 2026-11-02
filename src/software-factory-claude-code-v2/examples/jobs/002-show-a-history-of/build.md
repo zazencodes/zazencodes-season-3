@@ -15,7 +15,7 @@ The page now keeps the last 5 calculations in memory and shows them in a list un
 Files changed (commit `5ab9cce`):
 - `web/index.html`: added `<ul id="history"></ul>` below `#result`, two CSS rules (`#history` and `#history:empty`), and a few lines in the existing submit handler.
 
-Draft PR: https://github.com/zazencodes/software-factory-sandbox/pull/7
+Draft PR #7
 
 ## Acceptance criteria
 1. [x] `git diff --name-only origin/main...HEAD` lists only the page: output was `web/index.html`.
@@ -30,7 +30,7 @@ Draft PR: https://github.com/zazencodes/software-factory-sandbox/pull/7
 10. [x] `git diff origin/main -- calc.py tests AGENTS.md`: no output.
 
 ## Validation
-- `bash /Users/alex/pro/software-factory-sandbox/factory/checks.sh` (run from the worktree): passed, exit 0.
+- `bash <repo>/factory/checks.sh` (run from the worktree): passed, exit 0.
 - `python3 -m unittest discover -s tests -t .`: `OK`, 1 test.
 - `python3 -m http.server 5120 --directory web`, checked with agent-browser (session `002-show-a-history-of-builder`). Dev server and browser were closed afterwards.
 - `git status --porcelain`: clean after commit and push.

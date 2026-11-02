@@ -108,9 +108,15 @@ intake → spec → build → gate → review → approve, one PR per issue. Sta
 `factory/jobs/` (gitignored); `factory/bin/job` is its only writer. Checks:
 `factory/checks.sh`. Dashboard: `cd factory && python3 -m http.server`, then
 open http://localhost:8000/dashboard.html.
+
+Each job works in its own git worktree, a full checkout of the repo at
+`.worktrees/<job-id>` (gitignored). A tool run from the repo root that doesn't
+read `.gitignore` sees those copies too; exclude `.worktrees/` in its config.
 ```
 
-**`.gitignore`.** Add `/factory/jobs/`.
+**`.gitignore`.** Add `/factory/jobs/` and `/.worktrees/`. Each job's worktree
+is a full checkout in `.worktrees/<job-id>`; without the ignore, it shows up in
+the main checkout's `git status`.
 
 **Labels.** Create them on GitHub:
 

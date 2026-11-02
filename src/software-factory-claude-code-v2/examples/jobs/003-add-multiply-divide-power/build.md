@@ -18,7 +18,7 @@ Files changed (against `origin/main` merge-base `cd860d3`):
 - `calc.py`
 - `tests/test_multiply_divide_power.py` (new)
 
-Branch `factory/003-add-multiply-divide-power` is pushed at `cace151`, and the tree is clean. No new commit this round. Draft PR: https://github.com/zazencodes/software-factory-sandbox/pull/8
+Branch `factory/003-add-multiply-divide-power` is pushed at `cace151`, and the tree is clean. No new commit this round. Draft PR #8
 
 ## Acceptance criteria
 1. [x] `calc.multiply(3, 4), calc.multiply(-2, 5)` prints `12 -10`: ran the command in round 2, got `12 -10`.
@@ -37,7 +37,7 @@ Branch `factory/003-add-multiply-divide-power` is pushed at `cace151`, and the t
 No browser check: none of the criteria concern the page, and `web/index.html` is unchanged by this branch. The dev server was not started.
 
 ## Validation
-- `bash /Users/alex/pro/software-factory-sandbox/factory/checks.sh` (worktree), this round: exit 0, `Ran 7 tests in 0.000s OK`.
+- `bash <repo>/factory/checks.sh` (worktree), this round: exit 0, `Ran 7 tests in 0.000s OK`.
 - `git diff --name-only origin/main...HEAD` (worktree): `calc.py`, `tests/test_multiply_divide_power.py`.
 - `git status --porcelain` in the worktree: empty.
 - `git log origin/main..HEAD`: `38fd851`, `cace151`, both pushed.

@@ -364,9 +364,13 @@ function elapsed(job) {
   return min >= 60 ? `${Math.floor(min / 60)}h${String(min % 60).padStart(2, '0')}m` : `${min}m`
 }
 
+// The example jobs keep their issue and PR numbers but have no URLs.
+const link = (url, text) =>
+  url ? `<a href="${esc(url)}" target="_blank" rel="noopener">${text}</a>` : `<span>${text}</span>`
+
 function links(job) {
-  const out = [`<a href="${esc(job.issue_url)}" target="_blank" rel="noopener">issue #${job.issue}</a>`]
-  if (job.pr) out.push(`<a href="${esc(job.pr_url)}" target="_blank" rel="noopener">PR #${job.pr}</a>`)
+  const out = [link(job.issue_url, `issue #${job.issue}`)]
+  if (job.pr) out.push(link(job.pr_url, `PR #${job.pr}`))
   return out.join('')
 }
 

@@ -57,7 +57,7 @@ through the scripts. `factory/jobs/` is gitignored runtime state.
 <repo>/factory/jobs/<job-id>/round-<N>/review-<r>.md    one per routed reviewer
 <repo>/factory/jobs/<job-id>/decision.md                APPROVE or ESCALATE
 <repo>/factory/jobs/<job-id>/feedback-<k>.md            the user's feedback on an escalated job
-<repo>/../<name>-factory/<job-id>/             the job's worktree, on factory/<job-id>
+<repo>/.worktrees/<job-id>/                    the job's worktree, on factory/<job-id>
 ```
 
 Read `job.json` with `cat` when you need a field. Read agents' files only by
