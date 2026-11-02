@@ -60,7 +60,8 @@ One Claude Code session orchestrates every job, `concurrency` at a time
 ```
 
 You approve by merging the PR on GitHub. To change an escalated PR, tell the
-factory what you want with `/factory`.
+factory what you want with `/factory`. To drop a job that waits on you or on
+its author, tell the factory to reject it.
 
 ## The guide
 

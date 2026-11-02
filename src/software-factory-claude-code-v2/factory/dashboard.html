@@ -470,7 +470,7 @@ async function listFiles(dir) {
   return out
 }
 
-const ORDER = ['issue.md', 'intake.md', 'spec.md', 'build.md', 'decision.md']
+const ORDER = ['issue.md', 'intake.md', 'spec.md', 'build.md', 'decision.md', 'rejection.md']
 const ROUND_ORDER = ['checks', 'review-code', 'review-security', 'review-ux', 'review-ui', 'merge-checks']
 
 function fileRank(path) {
@@ -490,7 +490,7 @@ function sortFiles(files) {
 function tone(first) {
   if (/^(VERDICT:\s*PASS|GATE:\s*PASS|APPROVE|STATUS:\s*READY|DECISION:\s*ACCEPT)$/.test(first)) return 'good'
   if (/^(VERDICT:\s*CHANGES|DECISION:\s*NEEDS-INFO)$/.test(first)) return 'warn'
-  if (/^(ESCALATE|STATUS:\s*BLOCKED|GATE:\s*FAIL|DECISION:\s*REJECT)$/.test(first)) return 'stop'
+  if (/^(ESCALATE|REJECTED|STATUS:\s*BLOCKED|GATE:\s*FAIL|DECISION:\s*REJECT)$/.test(first)) return 'stop'
   return null
 }
 

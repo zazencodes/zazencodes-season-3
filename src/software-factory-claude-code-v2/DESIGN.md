@@ -104,7 +104,9 @@ gated again, because another job may have merged since it was tested.
 escalates the rest with a specific question. An escalated PR is ready for
 review and its issue is labeled `factory:needs-human`. Merge it to approve, or
 tell the factory what to change with `/factory <anything>`: your words go to
-the builder as `feedback-<k>.md` and the job runs another round.
+the builder as `feedback-<k>.md` and the job runs another round. To drop a
+job that waits on you or on its author, tell the factory to reject it: the
+reason goes on the issue, its PR closes, and the job moves to Done.
 
 **State is files, so runs resume.** Every fact the orchestrator needs is in
 `factory/jobs/`. If the session dies or compacts, a fresh `/factory run` reads

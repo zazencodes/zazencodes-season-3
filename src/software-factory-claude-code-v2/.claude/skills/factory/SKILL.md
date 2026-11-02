@@ -205,6 +205,19 @@ new feature, ask.
   budget. Go to **build** with
   `The user gave feedback: read feedback-<k>.md and address it, push, and update build.md for round <N>.`
   and continue like any job.
+- **Rejecting or benching a `needs-info` or `needs-human` job**: pass their
+  reason verbatim on stdin:
+
+  ```bash
+  factory/bin/job reject <n> <<'EOF'
+  <their reason>
+  EOF
+  ```
+
+  It saves `rejection.md`, posts the reason on the issue, removes the factory
+  labels, closes the job's PR if it has one, and moves the job to Done. The
+  issue stays open; to bring it back, delete `factory/jobs/<id>` and add the
+  `factory` label again.
 - **An answer to a `needs-info` question**: post their words on the issue with
   `gh issue comment <n> --body "<their answer>"`, then
   `factory/bin/job advance <id> intake` and go to **intake**.

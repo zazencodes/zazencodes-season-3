@@ -12,6 +12,7 @@ Usage:
   job advance <job> <stage>      move a job to <stage>, or refuse
   job merge <job>                APPROVE → sync with the base branch, gate, merge the PR
   job feedback <job>             needs-human → build, with your feedback (stdin) as feedback-<k>.md
+  job reject <job>               needs-info or needs-human → rejected, with your reason (stdin) as rejection.md
   job agents <job> <json>        record the routed agent set (called by factory/bin/route)
   job sync <job>                 refresh reviews, gate and cost from the job's files
   job summary [<job>...]         table of jobs: issue, stage, PR, cost, time
@@ -39,14 +40,14 @@ MARKER = "<!-- factory -->"
 
 TRANSITIONS = {
     "intake": {"needs-info", "rejected", "spec"},
-    "needs-info": {"intake"},
+    "needs-info": {"intake", "rejected"},
     "spec": {"build"},
     "build": {"gate", "needs-human"},
     "gate": {"review", "build", "needs-human"},
     "review": {"approve", "build", "needs-human"},
     "approve": {"merging", "needs-human"},
     "merging": {"merged", "needs-human"},
-    "needs-human": {"build", "merged"},
+    "needs-human": {"build", "merged", "rejected"},
 }
 TERMINAL = {"merged", "rejected"}
 WAITING = {"needs-info", "needs-human"}
@@ -356,7 +357,17 @@ def advance(job, stage):
     decision = header(d / "intake.md").get("DECISION") if (d / "intake.md").exists() else None
     intake_body = lambda: "\n".join((d / "intake.md").read_text().split("\n\n", 1)[1:]).strip()
 
-    if old == "intake":
+    if stage == "rejected" and old in WAITING:
+        require((d / "rejection.md").exists(), "use `job reject` to reject a waiting job")
+        reason = (d / "rejection.md").read_text().split("\n", 1)[1].strip()
+        comment("issue", job["issue"], f"### Factory: rejected\n\n{reason}")
+        waiting = LABELS["needs_info"] if old == "needs-info" else LABELS["needs_human"]
+        label("issue", job["issue"], remove=f"{LABELS['queue']},{waiting}")
+        if job["pr"]:
+            gh("pr", "close", str(job["pr"]))
+            run(["git", "push", "origin", "--delete", job["branch"]], check=False)
+
+    elif old == "intake":
         want = {"needs-info": "NEEDS-INFO", "rejected": "REJECT", "spec": "ACCEPT"}[stage]
         require(decision == want, f"intake.md says DECISION: {decision}, not {want}")
         title = f"### Factory intake: {decision}"
@@ -471,7 +482,7 @@ def advance(job, stage):
             comment("issue", job["issue"], body)
         label("issue", job["issue"], add=LABELS["needs_human"])
 
-    if stage == "merged" and Path(job["worktree"]).exists():
+    if stage in TERMINAL and Path(job["worktree"]).exists():
         run(["git", "worktree", "remove", "--force", job["worktree"]])
         run(["git", "branch", "-D", job["branch"]], check=False)
 
@@ -601,6 +612,16 @@ def cmd_feedback(job, text):
     print(f"{job['id']}: feedback-{k}.md, round {job['round']}")
 
 
+def cmd_reject(job, text):
+    if job["stage"] not in WAITING:
+        die(f"{job['id']} is in {job['stage']}, not needs-info or needs-human")
+    if not text.strip():
+        die("no reason on stdin")
+    (job_dir(job["id"]) / "rejection.md").write_text(f"REJECTED\n\nBy @{operator()} while the job was {job['stage']}.\n\n{text.strip()}\n")
+    save(advance(sync(job), "rejected"))
+    print(f"{job['id']}: rejected")
+
+
 def cmd_agents(job, spec):
     if job["stage"] != "intake" or (job["intake"] or {}).get("decision") != "ACCEPT":
         die(f"{job['id']}: route only an intake job that intake ACCEPTed")
@@ -646,6 +667,8 @@ def main(argv):
             cmd_merge(resolve(args[0]))
         elif cmd == "feedback" and len(args) == 1:
             cmd_feedback(resolve(args[0]), sys.stdin.read())
+        elif cmd == "reject" and len(args) == 1:
+            cmd_reject(resolve(args[0]), sys.stdin.read())
         elif cmd == "agents" and len(args) == 2:
             cmd_agents(sync(resolve(args[0])), args[1])
         elif cmd == "sync" and len(args) == 1:
