@@ -50,7 +50,10 @@ rewrites files, such as `--fix`.
   requires it.
 - **Tests**: new behaviour has tests where the repo has a test runner, and no
   existing test was weakened, skipped or special-cased to pass.
-- **Commits**: short one-line messages and nothing stray committed.
+- **Commits**: short one-line messages and nothing stray committed. Trailers
+  and attribution (`Co-Authored-By` and the like) are the builder's, not
+  yours: the builder runs on a different model than you, so never compare
+  them with your own session's attribution or ask for commits to be rewritten.
 
 ## Write review-code.md
 
@@ -69,7 +72,8 @@ Non-blocking observations. Optional.
 
 - The first line must be exactly `VERDICT: PASS` or `VERDICT: CHANGES`.
 - Use CHANGES only for bugs, spec gaps, weakened tests or clear convention
-  breaks. Put style preferences under Notes.
+  breaks in the code. Put style preferences, process nitpicks and anything
+  that doesn't change how the code behaves or reads under Notes.
 - `## Summary` comes right after the header: 3 to 5 short bullets a human can
   skim on the dashboard. The detail goes in the sections below it.
 - Under Findings, write "None." when there are none.
