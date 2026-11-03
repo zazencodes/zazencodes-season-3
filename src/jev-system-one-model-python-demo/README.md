@@ -4,6 +4,17 @@ Hands-on implementation of **Jev** by **TypeSafe AI** — a non-autoregressive "
 
 ---
 
+## Take the Full Course: Jev: Introduction to System 1 AI
+
+> [!NOTE]
+> [![Jev: Introduction to System 1 AI](assets/jev-course-cover.png)](https://www.skool.com/zazencodes-agentic-coding-club-7823)
+>
+> Go deeper in my course **Jev: Introduction to System 1 AI**, live now in the [ZazenCodes Agentic Coding Club on Skool](https://www.skool.com/zazencodes-agentic-coding-club-7823). It has 23 video lessons covering the three typed primitives, real-world use cases on real data, and a live build of a custom Pi model router that uses Jev to choose the model for each prompt.
+>
+> **[Join the Agentic Coding Club on Skool](https://www.skool.com/zazencodes-agentic-coding-club-7823)**
+
+---
+
 ## What is Jev?
 
 Traditional Large Language Models (LLMs) like GPT-4o or Claude 3.7 are **System 2** reasoning models: slow, deliberative, autoregressive (token-by-token), and optimized for conversational prose.
