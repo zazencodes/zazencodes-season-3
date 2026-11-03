@@ -150,6 +150,9 @@ finished:
 A job is finished for this run when it reaches `merged`, `rejected`,
 `needs-info` or `needs-human`.
 
+A person can merge a job's PR by hand at any stage. `factory/bin/job queue`
+then moves the job to `merged`; stop any agents still running for it.
+
 ## /factory run
 
 1. Run `factory/bin/job queue`. Each line is `action  issue  job  stage  note`:

@@ -46,10 +46,12 @@ TRANSITIONS = {
     "gate": {"review", "build", "needs-human"},
     "review": {"approve", "build", "needs-human"},
     "approve": {"merging", "needs-human"},
-    "merging": {"merged", "needs-human"},
-    "needs-human": {"build", "merged", "rejected"},
+    "merging": {"needs-human"},
+    "needs-human": {"build", "rejected"},
 }
 TERMINAL = {"merged", "rejected"}
+# Any unfinished job can move to merged once its PR is merged on GitHub,
+# whether the factory merged it or a person did mid-round.
 WAITING = {"needs-info", "needs-human"}
 CONCURRENCY = CONFIG["concurrency"]
 
@@ -364,12 +366,18 @@ def next_round(job):
 
 def advance(job, stage):
     old = job["stage"]
-    require(stage in TRANSITIONS.get(old, set()), f"{job['id']}: {old} → {stage} is not a legal transition")
+    require(stage in TRANSITIONS.get(old, set()) or (stage == "merged" and old not in TERMINAL),
+            f"{job['id']}: {old} → {stage} is not a legal transition")
     d = job_dir(job["id"])
     decision = header(d / "intake.md").get("DECISION") if (d / "intake.md").exists() else None
     intake_body = lambda: "\n".join((d / "intake.md").read_text().split("\n\n", 1)[1:]).strip()
 
-    if stage == "rejected" and old in WAITING:
+    if stage == "merged":
+        require(job["pr"] and pr_state(job) == "MERGED", "the PR isn't merged")
+        if old == "needs-human":
+            label("issue", job["issue"], remove=LABELS["needs_human"])
+
+    elif stage == "rejected" and old in WAITING:
         require((d / "rejection.md").exists(), "use `job reject` to reject a waiting job")
         reason = (d / "rejection.md").read_text().split("\n", 1)[1].strip()
         comment("issue", job["issue"], f"### Factory: rejected\n\n{reason}")
@@ -471,19 +479,13 @@ def advance(job, stage):
         line = first_line(d / "decision.md")
         require(line == want, f"decision.md starts with {line!r}, not {want}")
 
-    elif old == "merging" and stage == "merged":
-        require(pr_state(job) == "MERGED", f"PR #{job['pr']} isn't merged")
-
     elif old == "needs-human":
-        if stage == "merged":
-            require(job["pr"] and pr_state(job) == "MERGED", "the PR isn't merged")
-        else:
-            feedback = sorted(d.glob("feedback-*.md"))
-            require(feedback and feedback[-1].stat().st_mtime > (d / "decision.md").stat().st_mtime,
-                    "use `job feedback` to send a job back to the builder")
-            job["round_limit"] = job["round"] + CONFIG["max_rounds"]
-            next_round(job)
-            label("issue", job["issue"], remove=LABELS["needs_human"])
+        feedback = sorted(d.glob("feedback-*.md"))
+        require(feedback and feedback[-1].stat().st_mtime > (d / "decision.md").stat().st_mtime,
+                "use `job feedback` to send a job back to the builder")
+        job["round_limit"] = job["round"] + CONFIG["max_rounds"]
+        next_round(job)
+        label("issue", job["issue"], remove=LABELS["needs_human"])
 
     if stage == "needs-human":
         body = f"### Factory: needs a human\n\n{(d / 'decision.md').read_text().split(chr(10), 1)[1].strip()}"
@@ -547,9 +549,9 @@ def cmd_queue():
     """Rows in the order to start them. `resume` and `new` rows fit in the
     concurrency slots; the rest show as `hold` until a running job finishes."""
     jobs = {j["issue"]: j for j in all_jobs()}
-    # A needs-human job is done once its PR is merged on GitHub, which also closes the issue.
+    # A job is done once its PR is merged on GitHub, which also closes the issue.
     for j in jobs.values():
-        if j["stage"] == "needs-human" and j["pr"] and pr_state(j) == "MERGED":
+        if j["stage"] not in TERMINAL and j["pr"] and pr_state(j) == "MERGED":
             save(advance(sync(j), "merged"))
     issues = gh_json("issue", "list", "--label", LABELS["queue"], "--state", "open",
                      "--limit", "200", "--json", "number,title")
