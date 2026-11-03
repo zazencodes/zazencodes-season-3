@@ -116,9 +116,19 @@ Each job works in its own git worktree, a full checkout of the repo at
 read `.gitignore` sees those copies too; exclude `.worktrees/` in its config.
 ```
 
-**`.gitignore`.** Add `/factory/jobs/` and `/.worktrees/`. Each job's worktree
-is a full checkout in `.worktrees/<job-id>`; without the ignore, it shows up in
-the main checkout's `git status`.
+**`.gitignore`.** Append these two lines:
+
+```gitignore
+/factory/jobs/
+/.worktrees/
+```
+
+`factory/jobs/` is runtime state (job metadata, specs, reviews, check logs)
+local to the machine running the factory. Each job's worktree is a full
+checkout in `.worktrees/<job-id>`. Neither belongs in the repo. Everything you
+copied in step 1 does: the skill in `.claude/skills/factory/`, the agents in
+`.claude/agents/` and the rest of `factory/` are part of the project and get
+committed, so ignore only these two paths, never `.claude/` or `factory/`.
 
 **Labels.** Create them on GitHub:
 
@@ -130,21 +140,24 @@ gh label create factory:needs-human --color D93F0B --description "The factory ne
 
 ## 3. Verify
 
-1. On a clean checkout of the base branch, `bash factory/checks.sh` exits 0.
-   If it fails on the base branch, the factory can never pass a job: fix the
+1. In the project root, on the current branch, `bash factory/checks.sh` exits 0.
+   If it fails there, the factory can never pass a job: fix the
    script (not the project) or tell the user what's broken.
 2. `factory/bin/job queue` runs without an error.
 3. Each file in `.claude/agents/` has only these frontmatter keys: `name`,
    `description`, `tools`, `model`, and `hooks` on the builder. Claude Code
    ignores unknown keys without a warning, so a typo silently changes behaviour.
 4. `python3 -m json.tool factory/config.json` succeeds.
+5. `git check-ignore factory/jobs/x .worktrees/x` prints both paths, and
+   `git status --porcelain --untracked-files=all` lists every file from step 1
+   (the skill, the agents and `factory/`) as committable.
 
 ## 4. Hand over
 
-Commit the install on a branch with a one-line message and show the user the
-diff. Ask before pushing: the factory branches every job from
-`origin/<base_branch>`, so the install must be merged there before the first
-run.
+Stay on the branch the user is on: don't create or check out another branch.
+Commit the install there with a one-line message and show the user the diff.
+Ask before pushing: the factory branches every job from `origin/<base_branch>`,
+so the install must be on that branch there before the first run.
 
 Then tell the user, in a few lines:
 
