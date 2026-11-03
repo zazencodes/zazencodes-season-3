@@ -51,6 +51,7 @@ TRANSITIONS = {
 }
 TERMINAL = {"merged", "rejected"}
 WAITING = {"needs-info", "needs-human"}
+CONCURRENCY = CONFIG["concurrency"]
 
 
 class Refused(Exception):
@@ -124,6 +125,17 @@ def all_jobs():
     if not JOBS.exists():
         return []
     return [load(p.name) for p in sorted(JOBS.iterdir()) if (p / "job.json").exists()]
+
+
+def running(jobs):
+    """Jobs holding a concurrency slot: every job not finished or waiting."""
+    return [j for j in jobs if j["stage"] not in TERMINAL | WAITING]
+
+
+def require_slot(job_id):
+    busy = [j["id"] for j in running(all_jobs()) if j["id"] != job_id]
+    require(len(busy) < CONCURRENCY,
+            f"concurrency {CONCURRENCY} reached; running: {', '.join(busy)}")
 
 
 def resolve(arg):
@@ -386,6 +398,7 @@ def advance(job, stage):
             run(["git", "worktree", "add", "-b", job["branch"], job["worktree"], f"origin/{BASE}"])
 
     elif old == "needs-info":
+        require_slot(job["id"])
         k = len(list(d.glob("intake-*.md"))) + 1
         (d / "intake.md").rename(d / f"intake-{k}.md")
         job["intake"] = None
@@ -503,6 +516,10 @@ def cmd_create(number):
     existing = [j for j in all_jobs() if j["issue"] == int(number)]
     if existing:
         die(f"issue #{number} already has job {existing[0]['id']} ({existing[0]['stage']})")
+    try:
+        require_slot(None)
+    except Refused as e:
+        die(str(e))
     issue = fetch_issue(number)
     if issue["state"] != "OPEN":
         die(f"issue #{number} is {issue['state'].lower()}")
@@ -527,38 +544,49 @@ def cmd_create(number):
 
 
 def cmd_queue():
+    """Rows in the order to start them. `resume` and `new` rows fit in the
+    concurrency slots; the rest show as `hold` until a running job finishes."""
     jobs = {j["issue"]: j for j in all_jobs()}
-    rows = []
     # A needs-human job is done once its PR is merged on GitHub, which also closes the issue.
     for j in jobs.values():
         if j["stage"] == "needs-human" and j["pr"] and pr_state(j) == "MERGED":
             save(advance(sync(j), "merged"))
     issues = gh_json("issue", "list", "--label", LABELS["queue"], "--state", "open",
                      "--limit", "200", "--json", "number,title")
-    open_numbers = set()
+    open_numbers = {i["number"] for i in issues}
+    running_rows, replied_rows, new_rows, other_rows = [], [], [], []
     for issue in sorted(issues, key=lambda i: i["number"]):
         n = issue["number"]
-        open_numbers.add(n)
         j = jobs.get(n)
         if not j:
-            rows.append(("new", n, "-", "-", issue["title"]))
+            new_rows.append(("new", n, "-", "-", issue["title"]))
         elif j["stage"] == "needs-info":
-            ready = replied_since_question(fetch_issue(n))
-            rows.append(("resume" if ready else "wait", n, j["id"], j["stage"],
-                         "author replied" if ready else "waiting for the author"))
+            if replied_since_question(fetch_issue(n)):
+                replied_rows.append(("resume", n, j["id"], j["stage"], "author replied"))
+            else:
+                other_rows.append(("wait", n, j["id"], j["stage"], "waiting for the author"))
         elif j["stage"] == "needs-human":
-            rows.append(("wait", n, j["id"], j["stage"], f"merge PR #{j['pr']}, or give feedback"
-                         if j["pr"] else "give feedback"))
+            other_rows.append(("wait", n, j["id"], j["stage"], f"merge PR #{j['pr']}, or give feedback"
+                               if j["pr"] else "give feedback"))
         elif j["stage"] == "rejected":
-            rows.append(("skip", n, j["id"], j["stage"], f"rejected; delete factory/jobs/{j['id']} to retry"))
+            other_rows.append(("skip", n, j["id"], j["stage"], f"rejected; delete factory/jobs/{j['id']} to retry"))
         elif j["stage"] == "merged":
-            rows.append(("skip", n, j["id"], j["stage"], "merged"))
+            other_rows.append(("skip", n, j["id"], j["stage"], "merged"))
         else:
-            rows.append(("resume", n, j["id"], j["stage"], f"round {j['round']}"))
+            running_rows.append(("resume", n, j["id"], j["stage"], f"round {j['round']}"))
     for n, j in sorted(jobs.items()):
         if n not in open_numbers and j["stage"] not in TERMINAL | WAITING:
-            rows.append(("skip", n, j["id"], j["stage"], f"issue is closed or no longer labeled {LABELS['queue']}"))
-    for row in rows:
+            other_rows.append(("skip", n, j["id"], j["stage"], f"issue is closed or no longer labeled {LABELS['queue']}"))
+    # Jobs already in a running stage hold a slot whether or not an agent is on them.
+    slots = CONCURRENCY - len(running(jobs.values()))
+    rows = list(running_rows)
+    for row in replied_rows + new_rows:
+        if slots > 0:
+            rows.append(row)
+            slots -= 1
+        else:
+            rows.append(("hold",) + row[1:4] + (f"concurrency {CONCURRENCY} reached",))
+    for row in rows + other_rows:
         print("\t".join(str(c) for c in row))
 
 

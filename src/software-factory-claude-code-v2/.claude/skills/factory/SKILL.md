@@ -153,13 +153,18 @@ A job is finished for this run when it reaches `merged`, `rejected`,
 ## /factory run
 
 1. Run `factory/bin/job queue`. Each line is `action  issue  job  stage  note`:
-   `new` (no job yet), `resume` (pick it up from its stage), `wait` (needs the
-   author or you) or `skip`.
-2. Start `resume` lines first, then `new` lines by issue number, until
-   `concurrency` jobs are running. Don't judge issues yourself: every new
-   issue goes to intake, which decides whether it gets built. For a new issue, `factory/bin/job create <n>`
-   prints the job id; start it at **intake**.
-3. Each time a job finishes, start the next queued issue.
+   `resume` (pick it up from its stage), `new` (no job yet), `hold` (no free
+   slot), `wait` (needs the author or you) or `skip`. The script enforces
+   `concurrency`: every job in a running stage holds a slot, and only as many
+   `new` and replied `needs-info` lines as there are free slots come out as
+   `new` or `resume`; the rest are `hold`. `job create` and the
+   `needs-info → intake` move refuse when no slot is free.
+2. Start every `resume` and `new` line, nothing else. Don't judge issues
+   yourself: every new issue goes to intake, which decides whether it gets
+   built. For a new issue, `factory/bin/job create <n>` prints the job id;
+   start it at **intake**.
+3. Each time a job finishes, run `factory/bin/job queue` again and start its
+   `resume` lines you aren't already running and its `new` lines.
 4. When nothing is queued or running, print `factory/bin/job summary <ids>`
    for the jobs this run touched, then list what waits on a human: PRs to
    review (merge one to approve it, or give feedback with `/factory`) and
