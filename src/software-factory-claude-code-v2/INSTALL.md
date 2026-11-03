@@ -70,10 +70,12 @@ It must be non-interactive, must not rewrite files (no `--fix`, no
 - `base_branch`: the default branch.
 - `merge_method`: `merge`, `squash` or `rebase`, one the repo allows
   (`gh api repos/{owner}/{repo} --jq '{allow_merge_commit, allow_squash_merge, allow_rebase_merge}'`).
-- `protected_paths`: keep the two factory entries and add patterns for the
-  existing tests, such as `tests/*` or `src/*.test.ts`. They are fnmatch
-  patterns, so `*` also matches `/`. The gate fails a branch that modifies or
-  deletes a matching file; new tests are fine.
+- `protected_paths`: keep the two factory entries and don't add the project's
+  tests. Features legitimately change existing tests (a new required field
+  changes every fixture), and a protected test blocks the job with no way
+  through. The code reviewer catches weakened or special-cased tests instead.
+  Add a path only when no job should ever change it. They are fnmatch
+  patterns, so `*` also matches `/`.
 - `ports`: move `base` if the project already uses ports 5100–5199.
 - Leave `concurrency`, `max_rounds`, `routing`, `surface_reviewers` and
   `prices_usd_per_mtok` as they are unless the user asks.

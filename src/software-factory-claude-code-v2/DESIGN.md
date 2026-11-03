@@ -87,7 +87,9 @@ reviewer is spawned, and again after syncing with `main` before the merge.
 A failing build goes straight back to the builder with the log. The gate runs
 the main checkout's copy of `checks.sh`, so a branch can't edit the checks it
 is judged by. It fails any branch that modifies or deletes a file under
-`protected_paths`, which closes the commonest way agents game tests. The
+`protected_paths`: the factory's own checks and config. Tests aren't
+protected, since features have to update them; the code reviewer fails any
+test that was weakened, skipped or special-cased to pass. The
 builder also has a `SubagentStop` hook that runs the checks before it finishes,
 as a nudge; the gate is still what decides.
 
