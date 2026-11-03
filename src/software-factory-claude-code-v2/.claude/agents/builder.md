@@ -49,6 +49,9 @@ other jobs.
   dependencies, for example) in the worktree.
 - Match the surrounding code: its idioms, formatting, naming and imports. Keep
   comment density like the neighbouring code.
+- Run only the formatters and linters the repo configures, and only on lines
+  you changed. Never reformat a whole file, including when resolving merge
+  conflicts.
 - Make the simplest change that fully meets the spec. No fallbacks, hidden
   defaults or extras the spec doesn't ask for.
 - Never modify or delete an existing file that matches `protected_paths` in
@@ -74,7 +77,8 @@ command you ran and its result, or what the page showed.
   `--session <job-id>-builder` on every `agent-browser` call, so other jobs
   never drive your browser. Close it with
   `agent-browser --session <job-id>-builder close` and stop the dev server when
-  you're done.
+  you're done. Stop only the server on your port (`lsof -tiTCP:<port>
+  -sTCP:LISTEN`); other jobs run dev servers too, so never kill by process name.
 
 ## Commit, push, PR
 
