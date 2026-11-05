@@ -16,6 +16,7 @@ These are the Season 3 source folders currently in this repo. The published vide
 
 | Video | Watch | Source code |
 | --- | --- | --- |
+| [Build and Deploy an Always-On AI Agent with Pi](https://youtu.be/4gSXKRusEYk) | [![Build and Deploy an Always-On AI Agent with Pi](assets/thumbnails/neon-meal-helper-agent.png)](https://youtu.be/4gSXKRusEYk) | [`src/neon-meal-helper-agent`](src/neon-meal-helper-agent) |
 | [Jev Image & Object Detection Python Demo](https://youtu.be/tqE-96tal4g) | [![Jev Image & Object Detection Python Demo](assets/thumbnails/jev-box-and-image.png)](https://youtu.be/tqE-96tal4g) | [`src/jev-box-and-image`](src/jev-box-and-image) |
 | [Run your Pi Agent for Free with 9Router + VPS (Full Guide + Demo)](https://youtu.be/OrG6Tya_WhU) | [![Run your Pi Agent for Free with 9Router + VPS (Full Guide + Demo)](assets/thumbnails/9router-vps.png)](https://youtu.be/OrG6Tya_WhU) | |
 | [Build an Agent with eve (Vercel's Open Agent Framework)](https://youtu.be/MObkrCUCrJw) | [![Build an Agent with eve (Vercel's Open Agent Framework)](assets/thumbnails/eve-pocket-research.png)](https://youtu.be/MObkrCUCrJw) | [`src/eve-pocket-research`](src/eve-pocket-research) |
