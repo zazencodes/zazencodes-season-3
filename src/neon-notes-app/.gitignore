@@ -1,4 +1,0 @@
-.neon
-.env.local
-node_modules/
-public/auth.js
