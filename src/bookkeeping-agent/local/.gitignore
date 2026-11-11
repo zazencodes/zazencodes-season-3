@@ -1,0 +1,17 @@
+node_modules/
+.env
+.DS_Store
+
+# credentials — never commit
+agent-home/auth.json
+
+# pi runtime state
+agent-home/sessions/
+agent-home/.current-session-id
+agent-home/.pi-cache/
+
+# personal memory — never commit. Templates live alongside as *.example.json
+agent-home/memory/expenses.json
+agent-home/memory/facts.json
+agent-home/memory/receipts/*
+!agent-home/memory/receipts/.gitkeep

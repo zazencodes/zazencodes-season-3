@@ -1,0 +1,2299 @@
+Directory structure:
+└── vegan-bars/
+    ├── README.md
+    ├── CLAUDE.md
+    ├── vegan-bars.html
+    ├── docs/
+    │   └── superpowers/
+    │       └── specs/
+    │           └── 2026-04-26-email-capture-design.md
+    ├── functions/
+    │   └── email-capture/
+    │       ├── main.py
+    │       └── requirements.txt
+    └── .claude/
+        └── settings.json
+
+================================================
+FILE: README.md
+================================================
+# RAWBAR — Vegan Protein Bars
+
+Landing page with email waitlist capture for a vegan protein bar brand. Post-apocalyptic cyberpunk aesthetic, zero build tooling, serverless backend on GCP.
+
+---
+
+## Project Structure
+
+```
+vegan-bars/
+├── vegan-bars.html              # Single-file static landing page
+└── functions/
+    └── email-capture/
+        ├── main.py              # GCP Cloud Function — email capture endpoint
+        └── requirements.txt
+```
+
+The entire frontend lives in one HTML file with embedded CSS and JavaScript. There is no bundler, no framework, and no npm. The backend is a single Python file deployed as a GCP HTTP Cloud Function.
+
+---
+
+## Local Development
+
+Serve the HTML file over HTTP (required for the form's `fetch` calls to work correctly):
+
+```bash
+python3 -m http.server 8080
+```
+
+Then open `http://localhost:8080/vegan-bars.html`.
+
+To test the waitlist form locally against the live Cloud Function, no changes are needed — the endpoint URL is hardcoded in the inline `<script>` at the bottom of `vegan-bars.html` and points to the deployed GCP function.
+
+---
+
+## Frontend
+
+### Page Sections
+
+| Section | Description |
+|---|---|
+| **Nav** | Fixed header with RAWBAR wordmark, green status indicator, and CTA button |
+| **Hero** | Full-viewport intro with glitch headline animation and an animated terminal card showing product specs |
+| **Waitlist** | Email capture form wired to the GCP backend |
+| **Ticker** | Horizontally scrolling warning banner |
+| **Products** | 4-column grid — ORIGINAL, DARK OPS, CITADEL CRUNCH, GHOST PROTOCOL ($4.50 each) |
+| **Why** | Four value modules: whole ingredients, sustained energy, eco-friendly, field-tested |
+| **Testimonials** | Three "operative reports" styled as terminal readouts |
+| **Field Data** | Stats — 100% Plant Origin, 0 Synthetic Compounds, 3rd-Party Tested, ~0 Corporate Compromises |
+| **CTA Banner** | Final purchase push — 12-unit cache for $38 |
+| **Footer** | Links and copyright (© 2086) |
+
+### Design System
+
+The visual language is post-apocalyptic cyberpunk. Key CSS variables:
+
+| Variable | Value | Role |
+|---|---|---|
+| `--matrix` | `#00ff41` | Primary green — borders, glows, accents |
+| `--matrix-dim` | `#00cc34` | Dimmed green for secondary use |
+| `--abyss` | `#050505` | Page background |
+| `--alert` | `#ff2d2d` | Error and warning states |
+| `--toxic` | `#c8ff00` | Highlight / callout color |
+| `--data` | `#4a9eff` | Data / info color |
+
+Fonts are loaded from Google Fonts:
+- **Orbitron** — headings and logotype
+- **Share Tech Mono** — body text throughout
+
+Atmospheric effects applied globally via `body::before` (CRT scanlines) and `body::after` (SVG noise grain). The cursor is set to `crosshair` sitewide.
+
+### JavaScript Interactions
+
+Three inline scripts at the bottom of `vegan-bars.html`:
+
+1. **Scroll reveal** — `IntersectionObserver` adds `.visible` to `.reveal` elements as they enter the viewport, staggered with `transitionDelay`.
+2. **Acquire button feedback** — `.add-btn` clicks briefly flash green ("ACQUIRED ▸") then reset after 1.5 s.
+3. **Waitlist form** — `fetch` POST to the Cloud Function; on success, replaces the form with a confirmation message; on error, shows an inline retry prompt.
+
+---
+
+## Backend — GCP Cloud Function
+
+### What It Does
+
+`functions/email-capture/main.py` is a stateless HTTP function that:
+
+1. Rejects non-POST requests (returns 204 on OPTIONS for CORS preflight)
+2. Parses JSON body, validates the `email` field with a regex
+3. Writes the email as a plain-text file to the `vegan-bars-waitlist` GCS bucket
+4. Filenames follow the pattern `{YYYYMMDDTHHMMSS}-{uuid4hex}.txt`
+5. Returns `{"status": "ok", "file": "<filename>"}` on success
+
+All responses include permissive CORS headers (`Access-Control-Allow-Origin: *`).
+
+### Dependencies
+
+```
+functions-framework==3.*
+google-cloud-storage==2.*
+```
+
+### Deploy
+
+```bash
+cd functions/email-capture
+
+gcloud functions deploy email-capture \
+  --runtime python311 \
+  --trigger-http \
+  --allow-unauthenticated \
+  --region us-central1
+```
+
+The live endpoint is:
+
+```
+https://us-central1-starvald-demelain-1.cloudfunctions.net/email-capture
+```
+
+### Test the Endpoint
+
+```bash
+curl -X POST \
+  https://us-central1-starvald-demelain-1.cloudfunctions.net/email-capture \
+  -H "Content-Type: application/json" \
+  -d '{"email": "test@example.com"}'
+```
+
+Expected response:
+
+```json
+{"status": "ok", "file": "20260426T120000-abc123.txt"}
+```
+
+### Reading Captured Emails
+
+Emails are stored in GCS. List them with:
+
+```bash
+gsutil ls gs://vegan-bars-waitlist/
+```
+
+Read a specific file:
+
+```bash
+gsutil cat gs://vegan-bars-waitlist/<filename>.txt
+```
+
+---
+
+## Deployment — Static Frontend
+
+The HTML file can be served from any static host. To deploy to GCS:
+
+```bash
+gsutil cp vegan-bars.html gs://<your-bucket>/vegan-bars.html
+gsutil acl ch -u AllUsers:R gs://<your-bucket>/vegan-bars.html
+```
+
+Or drop it behind any CDN / static host of your choice — there are no build artifacts to manage.
+
+
+
+================================================
+FILE: CLAUDE.md
+================================================
+# CLAUDE.md
+
+RAWBAR — vegan protein bar marketing site. Single HTML file (`vegan-bars.html`) + GCP Cloud Function (`functions/email-capture/main.py`). No build tools.
+
+## Key facts
+
+- Preview: `python3 -m http.server 8080` → `http://localhost:8080/vegan-bars.html`
+- All frontend styles and scripts are inline in `vegan-bars.html`; GCP function URL is hardcoded in the `<script>` block at the bottom
+- Emails stored as flat `.txt` files in GCS bucket `vegan-bars-waitlist` (no database)
+- After editing `vegan-bars.html`, Prettier runs automatically via PostToolUse hook
+
+## Design language
+
+Cyberpunk/post-apocalyptic: dark background (`#050505`), matrix-green glows (`#00ff41`), Orbitron + Share Tech Mono fonts, CRT scanline overlays. Keep this aesthetic for any new sections.
+
+
+
+================================================
+FILE: vegan-bars.html
+================================================
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RAWBAR — CONTRABAND NUTRITION // SECTOR-7</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --void: #000000;
+        --abyss: #050505;
+        --steel: #0d0d0d;
+        --iron: #111111;
+        --plate: #1a1a1a;
+        --gunmetal: #222222;
+        --matrix: #00ff41;
+        --matrix-dim: #00cc34;
+        --matrix-faint: rgba(0, 255, 65, 0.08);
+        --matrix-glow: rgba(0, 255, 65, 0.25);
+        --alert: #ff2d2d;
+        --alert-dim: rgba(255, 45, 45, 0.15);
+        --toxic: #c8ff00;
+        --data: #4a9eff;
+        --static: #cccccc;
+        --ghost: #666666;
+        --fog: #3a3a3a;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        background-color: var(--abyss);
+        color: var(--static);
+        font-family: "Share Tech Mono", monospace;
+        font-size: 14px;
+        line-height: 1.7;
+        cursor: crosshair;
+        overflow-x: hidden;
+      }
+
+      /* CRT scanlines */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          rgba(0, 0, 0, 0.18) 2px,
+          rgba(0, 0, 0, 0.18) 4px
+        );
+        pointer-events: none;
+        z-index: 9999;
+      }
+
+      /* Noise grain */
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+        pointer-events: none;
+        z-index: 9998;
+        opacity: 0.5;
+      }
+
+      /* ── nav ── */
+      nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 500;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.2rem 2.5rem;
+        background: rgba(5, 5, 5, 0.96);
+        border-bottom: 1px solid var(--matrix-dim);
+        backdrop-filter: blur(8px);
+      }
+
+      .nav-logo {
+        font-family: "Orbitron", sans-serif;
+        font-size: 1.3rem;
+        font-weight: 900;
+        letter-spacing: 0.2em;
+        color: var(--matrix);
+        text-decoration: none;
+        text-shadow: 0 0 20px var(--matrix-glow);
+      }
+
+      .nav-status {
+        font-size: 0.7rem;
+        color: var(--matrix-dim);
+        letter-spacing: 0.1em;
+        animation: blink 2s step-end infinite;
+      }
+
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.2;
+        }
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 2.5rem;
+        list-style: none;
+      }
+
+      .nav-links a {
+        font-size: 0.7rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--ghost);
+        text-decoration: none;
+        transition: color 0.15s;
+        position: relative;
+      }
+
+      .nav-links a::before {
+        content: "// ";
+        color: var(--matrix-dim);
+      }
+
+      .nav-links a:hover {
+        color: var(--matrix);
+      }
+
+      .nav-cta {
+        font-family: "Orbitron", sans-serif;
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        background: transparent;
+        color: var(--matrix);
+        border: 1px solid var(--matrix);
+        padding: 0.55rem 1.4rem;
+        cursor: crosshair;
+        text-transform: uppercase;
+        transition: all 0.2s;
+        box-shadow:
+          0 0 10px var(--matrix-glow),
+          inset 0 0 10px transparent;
+      }
+
+      .nav-cta:hover {
+        background: var(--matrix);
+        color: var(--void);
+        box-shadow: 0 0 25px var(--matrix-glow);
+      }
+
+      /* ── hero ── */
+      .hero {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        align-items: center;
+        padding: 8rem 2.5rem 4rem;
+        position: relative;
+        overflow: hidden;
+        background:
+          radial-gradient(
+            ellipse at 20% 50%,
+            rgba(0, 255, 65, 0.04) 0%,
+            transparent 60%
+          ),
+          linear-gradient(180deg, var(--abyss) 0%, var(--void) 100%);
+      }
+
+      .hero-grid-bg {
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(0, 255, 65, 0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 255, 65, 0.04) 1px, transparent 1px);
+        background-size: 60px 60px;
+        pointer-events: none;
+      }
+
+      .hero-text {
+        position: relative;
+        z-index: 2;
+      }
+
+      .hero-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-size: 0.65rem;
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        color: var(--matrix-dim);
+        margin-bottom: 2rem;
+        opacity: 0;
+        animation: fadeUp 0.6s ease forwards 0.1s;
+      }
+
+      .hero-eyebrow::before {
+        content: "";
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: var(--matrix);
+        border-radius: 50%;
+        animation: pulse-dot 1.5s ease-in-out infinite;
+      }
+
+      @keyframes pulse-dot {
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 var(--matrix-glow);
+        }
+        50% {
+          box-shadow: 0 0 0 6px transparent;
+        }
+      }
+
+      .hero-headline {
+        font-family: "Orbitron", sans-serif;
+        font-size: clamp(3.5rem, 8vw, 7.5rem);
+        font-weight: 900;
+        line-height: 0.9;
+        letter-spacing: 0.02em;
+        color: var(--static);
+        margin-bottom: 1.5rem;
+        opacity: 0;
+        animation: fadeUp 0.6s ease forwards 0.25s;
+        position: relative;
+      }
+
+      .hero-headline .glitch-word {
+        position: relative;
+        color: var(--matrix);
+        text-shadow: 0 0 30px var(--matrix-glow);
+        display: inline-block;
+        animation: glitch 4s infinite;
+      }
+
+      .hero-headline .glitch-word::before,
+      .hero-headline .glitch-word::after {
+        content: attr(data-text);
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+      }
+
+      .hero-headline .glitch-word::before {
+        color: var(--alert);
+        animation: glitch-before 4s infinite;
+        clip-path: polygon(0 0, 100% 0, 100% 40%, 0 40%);
+      }
+
+      .hero-headline .glitch-word::after {
+        color: var(--data);
+        animation: glitch-after 4s infinite;
+        clip-path: polygon(0 60%, 100% 60%, 100% 100%, 0 100%);
+      }
+
+      @keyframes glitch {
+        0%,
+        90%,
+        100% {
+          transform: translate(0);
+        }
+        92% {
+          transform: translate(-2px, 1px);
+        }
+        94% {
+          transform: translate(2px, -1px);
+        }
+        96% {
+          transform: translate(-1px, 2px);
+        }
+      }
+
+      @keyframes glitch-before {
+        0%,
+        90%,
+        100% {
+          transform: translate(0);
+          opacity: 0;
+        }
+        92% {
+          transform: translate(3px, -2px);
+          opacity: 0.8;
+        }
+        94% {
+          transform: translate(-3px, 1px);
+          opacity: 0.8;
+        }
+        96% {
+          transform: translate(0);
+          opacity: 0;
+        }
+      }
+
+      @keyframes glitch-after {
+        0%,
+        90%,
+        100% {
+          transform: translate(0);
+          opacity: 0;
+        }
+        92% {
+          transform: translate(-3px, 2px);
+          opacity: 0.8;
+        }
+        94% {
+          transform: translate(3px, -1px);
+          opacity: 0.8;
+        }
+        96% {
+          transform: translate(0);
+          opacity: 0;
+        }
+      }
+
+      .hero-sub {
+        font-size: 0.85rem;
+        color: var(--ghost);
+        max-width: 40ch;
+        margin-bottom: 3rem;
+        line-height: 1.8;
+        opacity: 0;
+        animation: fadeUp 0.6s ease forwards 0.4s;
+      }
+
+      .hero-sub span {
+        color: var(--matrix-dim);
+      }
+
+      .hero-actions {
+        display: flex;
+        align-items: center;
+        gap: 2.5rem;
+        opacity: 0;
+        animation: fadeUp 0.6s ease forwards 0.55s;
+      }
+
+      .btn-primary {
+        font-family: "Orbitron", sans-serif;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        background: var(--matrix);
+        color: var(--void);
+        border: none;
+        padding: 1rem 2.5rem;
+        cursor: crosshair;
+        text-transform: uppercase;
+        position: relative;
+        transition: all 0.2s;
+        clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+      }
+
+      .btn-primary:hover {
+        box-shadow: 0 0 30px var(--matrix-glow);
+        transform: translateY(-2px);
+      }
+
+      .hero-stat {
+        font-size: 0.65rem;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--ghost);
+        border-left: 1px solid var(--fog);
+        padding-left: 1.2rem;
+      }
+
+      .hero-stat strong {
+        display: block;
+        font-family: "Orbitron", sans-serif;
+        font-size: 2rem;
+        font-weight: 900;
+        color: var(--matrix);
+        letter-spacing: 0.05em;
+        line-height: 1;
+        text-shadow: 0 0 15px var(--matrix-glow);
+      }
+
+      /* hero terminal visual */
+      .hero-visual {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 70vh;
+        opacity: 0;
+        animation: fadeIn 1s ease forwards 0.7s;
+        z-index: 2;
+      }
+
+      .terminal-card {
+        width: 300px;
+        background: var(--steel);
+        border: 1px solid var(--matrix-dim);
+        box-shadow:
+          0 0 40px var(--matrix-glow),
+          inset 0 0 40px rgba(0, 0, 0, 0.5);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .terminal-header {
+        background: var(--matrix);
+        padding: 0.5rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+      }
+
+      .terminal-title {
+        font-family: "Orbitron", sans-serif;
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+        color: var(--void);
+      }
+
+      .terminal-dots {
+        display: flex;
+        gap: 0.4rem;
+        margin-left: auto;
+      }
+
+      .terminal-dots span {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--void);
+        opacity: 0.5;
+      }
+
+      .terminal-body {
+        padding: 1.5rem;
+      }
+
+      .terminal-line {
+        font-size: 0.65rem;
+        color: var(--matrix-dim);
+        margin-bottom: 0.4rem;
+        letter-spacing: 0.05em;
+      }
+
+      .terminal-line.prompt::before {
+        content: "> ";
+        color: var(--matrix);
+      }
+
+      .terminal-product-name {
+        font-family: "Orbitron", sans-serif;
+        font-size: 1.4rem;
+        font-weight: 900;
+        color: var(--static);
+        letter-spacing: 0.05em;
+        margin: 1rem 0 0.5rem;
+        line-height: 1.1;
+      }
+
+      .terminal-code {
+        font-size: 0.6rem;
+        color: var(--ghost);
+        letter-spacing: 0.1em;
+        margin-bottom: 1.5rem;
+      }
+
+      .terminal-readout {
+        border-top: 1px solid var(--fog);
+        padding-top: 1rem;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 0.8rem;
+        margin-bottom: 1rem;
+      }
+
+      .readout-item {
+        font-size: 0.58rem;
+        color: var(--ghost);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .readout-item span {
+        display: block;
+        font-family: "Orbitron", sans-serif;
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--matrix);
+        margin-bottom: 0.2rem;
+      }
+
+      .terminal-status {
+        font-size: 0.6rem;
+        color: var(--matrix-dim);
+        letter-spacing: 0.1em;
+        animation: blink 1.8s step-end infinite;
+      }
+
+      .floating-tag {
+        position: absolute;
+        font-family: "Orbitron", sans-serif;
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        padding: 0.3rem 0.8rem;
+        border: 1px solid;
+        text-transform: uppercase;
+      }
+
+      .tag-alert {
+        top: -10px;
+        right: -20px;
+        color: var(--alert);
+        border-color: var(--alert);
+        background: rgba(255, 45, 45, 0.08);
+        animation: float1 4s ease-in-out infinite;
+        box-shadow: 0 0 12px rgba(255, 45, 45, 0.3);
+      }
+
+      .tag-data {
+        bottom: 60px;
+        left: -30px;
+        color: var(--data);
+        border-color: var(--data);
+        background: rgba(74, 158, 255, 0.08);
+        animation: float2 5s ease-in-out infinite;
+        box-shadow: 0 0 12px rgba(74, 158, 255, 0.3);
+      }
+
+      .tag-toxic {
+        top: 100px;
+        left: -35px;
+        color: var(--toxic);
+        border-color: var(--toxic);
+        background: rgba(200, 255, 0, 0.06);
+        animation: float1 3.5s ease-in-out infinite 1s;
+        box-shadow: 0 0 12px rgba(200, 255, 0, 0.3);
+      }
+
+      @keyframes float1 {
+        0%,
+        100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+
+      @keyframes float2 {
+        0%,
+        100% {
+          transform: translateY(0px) rotate(-2deg);
+        }
+        50% {
+          transform: translateY(-8px) rotate(0deg);
+        }
+      }
+
+      /* ── section shared ── */
+      section {
+        padding: 6rem 2.5rem;
+      }
+
+      .section-label {
+        font-size: 0.6rem;
+        letter-spacing: 0.4em;
+        text-transform: uppercase;
+        color: var(--matrix-dim);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+      }
+
+      .section-label::before {
+        content: "";
+        display: inline-block;
+        width: 20px;
+        height: 1px;
+        background: var(--matrix-dim);
+      }
+
+      /* ── waitlist ── */
+      .waitlist {
+        background: var(--steel);
+        border-top: 1px solid var(--fog);
+        border-bottom: 1px solid var(--fog);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .waitlist::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 40%;
+        background: repeating-linear-gradient(
+          -45deg,
+          transparent,
+          transparent 8px,
+          rgba(255, 45, 45, 0.03) 8px,
+          rgba(255, 45, 45, 0.03) 16px
+        );
+        pointer-events: none;
+      }
+
+      .waitlist-shell {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+        gap: 4rem;
+        align-items: center;
+        position: relative;
+        z-index: 1;
+      }
+
+      .waitlist-title {
+        font-family: "Orbitron", sans-serif;
+        font-size: clamp(2rem, 5vw, 3.5rem);
+        font-weight: 900;
+        line-height: 1;
+        letter-spacing: 0.05em;
+        color: var(--static);
+        margin-bottom: 1rem;
+      }
+
+      .waitlist-title .accent {
+        color: var(--matrix);
+        text-shadow: 0 0 20px var(--matrix-glow);
+      }
+
+      .waitlist-body {
+        max-width: 36ch;
+        font-size: 0.8rem;
+        color: var(--ghost);
+        line-height: 1.8;
+      }
+
+      .waitlist-body .highlight {
+        color: var(--matrix-dim);
+      }
+
+      .waitlist-card {
+        border: 1px solid var(--fog);
+        background: var(--iron);
+        padding: 2rem;
+        position: relative;
+      }
+
+      .waitlist-card::before {
+        content: "// SECURE CHANNEL";
+        position: absolute;
+        top: -1px;
+        left: 1rem;
+        font-size: 0.55rem;
+        letter-spacing: 0.2em;
+        color: var(--matrix-dim);
+        background: var(--iron);
+        padding: 0 0.5rem;
+        transform: translateY(-50%);
+      }
+
+      .waitlist-form {
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+      }
+
+      .waitlist-input {
+        width: 100%;
+        min-height: 52px;
+        border: 1px solid var(--fog);
+        background: var(--steel);
+        color: var(--static);
+        font-family: "Share Tech Mono", monospace;
+        font-size: 0.8rem;
+        padding: 0.9rem 1rem;
+        outline: none;
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
+        letter-spacing: 0.05em;
+      }
+
+      .waitlist-input::placeholder {
+        color: var(--ghost);
+      }
+
+      .waitlist-input:focus {
+        border-color: var(--matrix);
+        box-shadow:
+          0 0 0 2px var(--matrix-glow),
+          0 0 20px var(--matrix-glow);
+      }
+
+      .waitlist-form .btn-primary {
+        width: 100%;
+        clip-path: none;
+      }
+
+      .waitlist-note {
+        font-size: 0.6rem;
+        color: var(--fog);
+        letter-spacing: 0.1em;
+      }
+
+      .waitlist-success {
+        font-family: "Orbitron", sans-serif;
+        font-size: 1.1rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        color: var(--matrix);
+        text-align: center;
+        padding: 1.5rem 1rem;
+        border: 1px solid var(--matrix-dim);
+        background: rgba(0, 255, 65, 0.04);
+        text-shadow: 0 0 20px var(--matrix-glow);
+      }
+
+      .waitlist-error {
+        font-size: 0.65rem;
+        color: var(--alert);
+        letter-spacing: 0.08em;
+      }
+
+      /* ── ticker ── */
+      .ticker {
+        background: var(--void);
+        border-top: 1px solid var(--alert);
+        border-bottom: 1px solid var(--alert);
+        padding: 0.6rem 0;
+        overflow: hidden;
+        white-space: nowrap;
+        box-shadow: 0 0 20px rgba(255, 45, 45, 0.2);
+      }
+
+      .ticker-inner {
+        display: inline-flex;
+        gap: 0;
+        animation: ticker 20s linear infinite;
+      }
+
+      .ticker-item {
+        font-family: "Orbitron", sans-serif;
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        color: var(--alert);
+        padding: 0 2rem;
+        text-transform: uppercase;
+      }
+
+      .ticker-dot {
+        color: rgba(255, 45, 45, 0.4);
+        padding: 0 0.3rem;
+      }
+
+      @keyframes ticker {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(-50%);
+        }
+      }
+
+      /* ── products ── */
+      .products {
+        background: var(--void);
+      }
+
+      .products-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-bottom: 4rem;
+      }
+
+      .products-title {
+        font-family: "Orbitron", sans-serif;
+        font-size: clamp(2.5rem, 6vw, 5rem);
+        font-weight: 900;
+        line-height: 0.9;
+        letter-spacing: 0.05em;
+        color: var(--static);
+      }
+
+      .products-title span {
+        color: var(--matrix);
+        text-shadow: 0 0 20px var(--matrix-glow);
+      }
+
+      .products-meta {
+        font-size: 0.65rem;
+        color: var(--ghost);
+        text-align: right;
+        max-width: 22ch;
+        line-height: 1.8;
+        letter-spacing: 0.08em;
+      }
+
+      .products-meta .warning {
+        color: var(--alert);
+        display: block;
+        margin-bottom: 0.5rem;
+      }
+
+      .products-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1px;
+        background: var(--fog);
+      }
+
+      .product-card {
+        background: var(--steel);
+        padding: 2rem 1.8rem;
+        position: relative;
+        overflow: hidden;
+        cursor: crosshair;
+        transition: background 0.3s;
+        border-top: 2px solid transparent;
+      }
+
+      .product-card::before {
+        content: attr(data-clearance);
+        position: absolute;
+        top: 0.8rem;
+        right: 0.8rem;
+        font-size: 0.5rem;
+        letter-spacing: 0.15em;
+        color: var(--ghost);
+        opacity: 0.6;
+      }
+
+      .product-card:hover {
+        background: var(--iron);
+        border-top-color: var(--matrix);
+      }
+
+      .product-card:hover::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: var(--matrix-faint);
+        pointer-events: none;
+      }
+
+      .product-id {
+        font-size: 0.55rem;
+        color: var(--ghost);
+        letter-spacing: 0.15em;
+        margin-bottom: 1.2rem;
+        opacity: 0.7;
+      }
+
+      .product-emoji {
+        font-size: 2.5rem;
+        display: block;
+        margin-bottom: 1.2rem;
+        filter: grayscale(0.3);
+      }
+
+      .product-flavor {
+        font-size: 0.58rem;
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        color: var(--matrix-dim);
+        margin-bottom: 0.5rem;
+      }
+
+      .product-name {
+        font-family: "Orbitron", sans-serif;
+        font-size: 1rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        color: var(--static);
+        line-height: 1.2;
+        margin-bottom: 0.8rem;
+      }
+
+      .product-desc {
+        font-size: 0.72rem;
+        color: var(--ghost);
+        line-height: 1.7;
+        margin-bottom: 1.5rem;
+        letter-spacing: 0.03em;
+      }
+
+      .product-stats {
+        display: flex;
+        gap: 1.2rem;
+        margin-bottom: 1.8rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--fog);
+      }
+
+      .stat {
+        font-size: 0.55rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--ghost);
+      }
+
+      .stat strong {
+        display: block;
+        font-family: "Orbitron", sans-serif;
+        font-size: 1.2rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: var(--matrix);
+        line-height: 1;
+        text-shadow: 0 0 10px var(--matrix-glow);
+      }
+
+      .product-price-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .product-price {
+        font-family: "Orbitron", sans-serif;
+        font-size: 1.4rem;
+        font-weight: 900;
+        letter-spacing: 0.05em;
+        color: var(--static);
+      }
+
+      .add-btn {
+        font-family: "Orbitron", sans-serif;
+        font-size: 0.55rem;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        background: transparent;
+        border: 1px solid var(--fog);
+        color: var(--ghost);
+        padding: 0.45rem 1rem;
+        cursor: crosshair;
+        transition: all 0.2s;
+        text-transform: uppercase;
+      }
+
+      .add-btn:hover {
+        background: var(--matrix);
+        border-color: var(--matrix);
+        color: var(--void);
+        box-shadow: 0 0 15px var(--matrix-glow);
+      }
+
+      /* ── why section ── */
+      .why {
+        background: var(--abyss);
+        border-top: 1px solid var(--fog);
+      }
+
+      .why-inner {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6rem;
+        align-items: center;
+      }
+
+      .why-headline {
+        font-family: "Orbitron", sans-serif;
+        font-size: clamp(2rem, 4.5vw, 3.8rem);
+        font-weight: 900;
+        line-height: 0.95;
+        letter-spacing: 0.04em;
+        margin-bottom: 2rem;
+        color: var(--static);
+      }
+
+      .why-headline em {
+        font-style: normal;
+        color: var(--matrix);
+        text-shadow: 0 0 25px var(--matrix-glow);
+      }
+
+      .why-body {
+        font-size: 0.8rem;
+        color: var(--ghost);
+        line-height: 1.9;
+        margin-bottom: 2.5rem;
+        letter-spacing: 0.04em;
+      }
+
+      .why-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+      }
+
+      .why-list li {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.8rem;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        color: var(--ghost);
+        padding: 0.5rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      }
+
+      .why-list li::before {
+        content: "▸";
+        color: var(--matrix);
+        font-size: 0.8rem;
+        flex-shrink: 0;
+        margin-top: 0.05rem;
+      }
+
+      .why-visual {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1px;
+        background: var(--fog);
+      }
+
+      .why-box {
+        background: var(--steel);
+        padding: 2rem 1.8rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        position: relative;
+        overflow: hidden;
+        transition: background 0.3s;
+      }
+
+      .why-box:hover {
+        background: var(--iron);
+      }
+
+      .why-box:nth-child(2) {
+        margin-top: 2.5rem;
+      }
+      .why-box:nth-child(3) {
+        margin-top: -2.5rem;
+      }
+
+      .why-box-code {
+        font-size: 0.55rem;
+        color: var(--ghost);
+        letter-spacing: 0.12em;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+      }
+
+      .why-box-icon {
+        font-size: 2rem;
+        margin-bottom: 0.8rem;
+        filter: grayscale(0.4);
+      }
+
+      .why-box-title {
+        font-family: "Orbitron", sans-serif;
+        font-size: 0.85rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        color: var(--static);
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+      }
+
+      .why-box-text {
+        font-size: 0.7rem;
+        color: var(--ghost);
+        letter-spacing: 0.04em;
+        line-height: 1.6;
+      }
+
+      /* ── testimonials ── */
+      .testimonials {
+        background: var(--void);
+        border-top: 1px solid var(--fog);
+      }
+
+      .testimonials-header {
+        margin-bottom: 3rem;
+      }
+
+      .testimonials-title {
+        font-family: "Orbitron", sans-serif;
+        font-size: clamp(1.8rem, 4vw, 3.2rem);
+        font-weight: 900;
+        letter-spacing: 0.06em;
+        color: var(--static);
+        line-height: 1;
+      }
+
+      .testimonials-title span {
+        color: var(--matrix);
+      }
+
+      .testimonials-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1px;
+        background: var(--fog);
+      }
+
+      .testimonial {
+        background: var(--steel);
+        padding: 2rem;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .testimonial-id {
+        font-size: 0.55rem;
+        color: var(--ghost);
+        letter-spacing: 0.15em;
+        margin-bottom: 1.2rem;
+        opacity: 0.6;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .testimonial-id .status {
+        color: var(--matrix-dim);
+        animation: blink 3s step-end infinite;
+      }
+
+      .testimonial-text {
+        font-size: 0.78rem;
+        color: var(--ghost);
+        line-height: 1.9;
+        margin-bottom: 1.5rem;
+        letter-spacing: 0.03em;
+        position: relative;
+        z-index: 1;
+        border-left: 2px solid var(--matrix-dim);
+        padding-left: 1rem;
+      }
+
+      .testimonial-author {
+        font-size: 0.6rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--fog);
+        padding-top: 1rem;
+        border-top: 1px solid var(--fog);
+      }
+
+      .testimonial-author strong {
+        color: var(--static);
+        display: block;
+        font-family: "Orbitron", sans-serif;
+        font-weight: 700;
+        font-size: 0.65rem;
+        margin-bottom: 0.3rem;
+      }
+
+      /* ── field data ── */
+      .field-data {
+        background: var(--abyss);
+        border-top: 1px solid var(--fog);
+        border-bottom: 1px solid var(--fog);
+      }
+
+      .field-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1px;
+        background: var(--fog);
+        margin-bottom: 3rem;
+      }
+
+      .field-stat {
+        background: var(--steel);
+        padding: 2.5rem 2rem;
+        position: relative;
+        overflow: hidden;
+        transition: background 0.3s;
+      }
+
+      .field-stat:hover {
+        background: var(--iron);
+      }
+
+      .field-stat::before {
+        content: attr(data-index);
+        position: absolute;
+        bottom: 0.8rem;
+        right: 1rem;
+        font-size: 0.5rem;
+        letter-spacing: 0.15em;
+        color: var(--ghost);
+        opacity: 0.3;
+      }
+
+      .field-stat span {
+        font-family: "Orbitron", sans-serif;
+        font-size: clamp(2.5rem, 5vw, 4rem);
+        font-weight: 900;
+        letter-spacing: 0.03em;
+        color: var(--matrix);
+        text-shadow: 0 0 25px var(--matrix-glow);
+        display: block;
+        line-height: 1;
+        margin-bottom: 0.6rem;
+      }
+
+      .field-stat p {
+        font-size: 0.65rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--ghost);
+      }
+
+      .field-note {
+        max-width: 80ch;
+        font-size: 0.8rem;
+        color: var(--ghost);
+        line-height: 2;
+        letter-spacing: 0.05em;
+        border-left: 2px solid var(--matrix-dim);
+        padding-left: 1.5rem;
+      }
+
+      .field-note strong {
+        color: var(--static);
+      }
+
+      @media (max-width: 900px) {
+        .field-stats {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      /* ── CTA banner ── */
+      .cta-banner {
+        background: var(--matrix);
+        padding: 5rem 2.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 3rem;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .cta-banner::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent 20px,
+          rgba(0, 0, 0, 0.05) 20px,
+          rgba(0, 0, 0, 0.05) 21px
+        );
+        pointer-events: none;
+      }
+
+      .cta-banner-text {
+        font-family: "Orbitron", sans-serif;
+        font-size: clamp(2rem, 4.5vw, 3.8rem);
+        font-weight: 900;
+        line-height: 0.95;
+        color: var(--void);
+        letter-spacing: 0.04em;
+        position: relative;
+      }
+
+      .cta-banner-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.8rem;
+        flex-shrink: 0;
+        position: relative;
+      }
+
+      .btn-dark {
+        font-family: "Orbitron", sans-serif;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        background: var(--void);
+        color: var(--matrix);
+        border: none;
+        padding: 1rem 2.5rem;
+        cursor: crosshair;
+        transition: all 0.2s;
+        text-transform: uppercase;
+        clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+      }
+
+      .btn-dark:hover {
+        background: var(--steel);
+        box-shadow: 0 0 25px rgba(0, 255, 65, 0.5);
+        transform: translateY(-2px);
+      }
+
+      .cta-note {
+        font-size: 0.6rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: rgba(0, 0, 0, 0.5);
+      }
+
+      /* ── footer ── */
+      footer {
+        background: var(--void);
+        padding: 2.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 1px solid var(--matrix-dim);
+      }
+
+      .footer-logo {
+        font-family: "Orbitron", sans-serif;
+        font-size: 1.5rem;
+        font-weight: 900;
+        letter-spacing: 0.2em;
+        color: var(--matrix);
+        text-shadow: 0 0 20px var(--matrix-glow);
+      }
+
+      .footer-copy {
+        font-size: 0.6rem;
+        letter-spacing: 0.15em;
+        color: var(--ghost);
+        text-align: center;
+      }
+
+      .footer-links {
+        display: flex;
+        gap: 2rem;
+        list-style: none;
+      }
+
+      .footer-links a {
+        font-size: 0.6rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--ghost);
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+
+      .footer-links a:hover {
+        color: var(--matrix);
+      }
+
+      /* ── animations ── */
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(24px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      /* ── scan reveal for scroll elements ── */
+      .reveal {
+        opacity: 0;
+        transform: translateY(20px);
+        transition:
+          opacity 0.5s ease,
+          transform 0.5s ease;
+      }
+
+      .reveal.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      /* ── responsive ── */
+      @media (max-width: 900px) {
+        .hero {
+          grid-template-columns: 1fr;
+          padding-top: 9rem;
+        }
+        .hero-visual {
+          height: 40vh;
+        }
+        .waitlist-shell {
+          grid-template-columns: 1fr;
+        }
+        .products-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .why-inner {
+          grid-template-columns: 1fr;
+          gap: 3rem;
+        }
+        .testimonials-grid {
+          grid-template-columns: 1fr;
+        }
+        .products-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 1rem;
+        }
+        .products-meta {
+          text-align: left;
+        }
+        .cta-banner {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .cta-banner-actions {
+          align-items: flex-start;
+        }
+        footer {
+          flex-direction: column;
+          gap: 1.5rem;
+          text-align: center;
+        }
+        nav {
+          padding: 1rem 1.5rem;
+        }
+        .nav-links {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- NAV -->
+    <nav>
+      <a href="#" class="nav-logo">RAWBAR</a>
+      <span class="nav-status">● SYSTEM ONLINE // SECTOR-7 NODE ACTIVE</span>
+      <ul class="nav-links">
+        <li><a href="#products">Inventory</a></li>
+        <li><a href="#why">Manifesto</a></li>
+        <li><a href="#reviews">Intel</a></li>
+      </ul>
+      <button class="nav-cta">Acquire</button>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-grid-bg"></div>
+      <div class="hero-text">
+        <span class="hero-eyebrow"
+          >// CONTRABAND NUTRITION UNIT — 100% PLANT-BASED</span
+        >
+        <h1 class="hero-headline">
+          FUEL<br />
+          FROM THE<br />
+          <span class="glitch-word" data-text="EARTH.">EARTH.</span>
+        </h1>
+        <p class="hero-sub">
+          <span>CLASSIFIED:</span> High-protein vegan bars engineered for the
+          resistance.<br />
+          Whole ingredients only. No synthetic compounds. No corporate
+          additives.<br />
+          Nothing artificial. Nothing held back.
+        </p>
+        <div class="hero-actions">
+          <button class="btn-primary">ACCESS INVENTORY</button>
+          <div class="hero-stat">
+            <strong>25g</strong>
+            plant protein
+          </div>
+          <div class="hero-stat">
+            <strong>4</strong>
+            variants
+          </div>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="terminal-card">
+          <div class="terminal-header">
+            <span class="terminal-title">RAWBAR // UNIT SCAN</span>
+            <div class="terminal-dots">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+          <div class="terminal-body">
+            <div class="terminal-line prompt">initiating scan...</div>
+            <div class="terminal-line prompt">unit identified: RB-001</div>
+            <div class="terminal-product-name">Dark Cacao<br />Hazelnut</div>
+            <div class="terminal-code">
+              SKU: RB-DCH-001 // CLEARANCE: LEVEL-2
+            </div>
+            <div class="terminal-readout">
+              <div class="readout-item"><span>25g</span>protein</div>
+              <div class="readout-item"><span>290</span>kcal</div>
+              <div class="readout-item"><span>8g</span>fiber</div>
+            </div>
+            <div class="terminal-status">▌ APPROVED FOR DISTRIBUTION</div>
+          </div>
+        </div>
+        <div class="floating-tag tag-alert">⚠ PLANT ONLY</div>
+        <div class="floating-tag tag-data">25G PROTEIN</div>
+        <div class="floating-tag tag-toxic">NO SOY</div>
+      </div>
+    </section>
+
+    <!-- WAITLIST -->
+    <section class="waitlist" id="waitlist">
+      <div class="waitlist-shell">
+        <div class="waitlist-copy">
+          <p class="section-label">Transmission Request</p>
+          <h2 class="waitlist-title">
+            JOIN THE<br /><span class="accent">NETWORK.</span>
+          </h2>
+          <p class="waitlist-body">
+            Encrypt your coordinates. We'll transmit
+            <span class="highlight">the moment RAWBAR clears distribution</span>
+            — first units go to registered operatives only.
+          </p>
+        </div>
+        <div class="waitlist-card">
+          <form class="waitlist-form">
+            <input
+              class="waitlist-input"
+              type="email"
+              name="email"
+              placeholder="> enter_email_address"
+              autocomplete="email"
+              required
+            />
+            <button class="btn-primary" type="submit">TRANSMIT SIGNAL</button>
+            <p class="waitlist-note">
+              // ENCRYPTED. UNSUBSCRIBE PROTOCOL AVAILABLE ANYTIME.
+            </p>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- TICKER -->
+    <div class="ticker" aria-hidden="true">
+      <div class="ticker-inner">
+        <span class="ticker-item">⚠ WARNING: 25g Plant Protein</span
+        ><span class="ticker-dot">░</span>
+        <span class="ticker-item">No Artificial Compounds</span
+        ><span class="ticker-dot">░</span>
+        <span class="ticker-item">Gluten Free</span
+        ><span class="ticker-dot">░</span>
+        <span class="ticker-item">Cold Pressed</span
+        ><span class="ticker-dot">░</span>
+        <span class="ticker-item">Non-GMO Verified</span
+        ><span class="ticker-dot">░</span>
+        <span class="ticker-item">Soy Free</span
+        ><span class="ticker-dot">░</span>
+        <span class="ticker-item">⚠ WARNING: 25g Plant Protein</span
+        ><span class="ticker-dot">░</span>
+        <span class="ticker-item">No Artificial Compounds</span
+        ><span class="ticker-dot">░</span>
+        <span class="ticker-item">Gluten Free</span
+        ><span class="ticker-dot">░</span>
+        <span class="ticker-item">Cold Pressed</span
+        ><span class="ticker-dot">░</span>
+        <span class="ticker-item">Non-GMO Verified</span
+        ><span class="ticker-dot">░</span>
+        <span class="ticker-item">Soy Free</span
+        ><span class="ticker-dot">░</span>
+      </div>
+    </div>
+
+    <!-- PRODUCTS -->
+    <section class="products" id="products">
+      <div class="products-header">
+        <h2 class="products-title">UNIT<br /><span>MANIFEST</span></h2>
+        <div class="products-meta">
+          <span class="warning">⚠ RESTRICTED DISTRIBUTION</span>
+          Four variants. Each one engineered to make corporate nutrient paste
+          obsolete.
+        </div>
+      </div>
+      <div class="products-grid">
+        <div class="product-card reveal" data-clearance="CLR:L2">
+          <div class="product-id">ID: RB-001 // DARK SERIES</div>
+          <span class="product-emoji">🍫</span>
+          <div class="product-flavor">// Classic</div>
+          <h3 class="product-name">Dark Cacao<br />Hazelnut</h3>
+          <p class="product-desc">
+            Raw cacao butter, roasted hazelnuts, sea salt extract.
+            Uncompromised.
+          </p>
+          <div class="product-stats">
+            <div class="stat"><strong>25g</strong>Protein</div>
+            <div class="stat"><strong>290</strong>Calories</div>
+            <div class="stat"><strong>8g</strong>Fiber</div>
+          </div>
+          <div class="product-price-row">
+            <span class="product-price">$4.50</span>
+            <button class="add-btn">Acquire</button>
+          </div>
+        </div>
+
+        <div class="product-card reveal" data-clearance="CLR:L1">
+          <div class="product-id">ID: RB-002 // ALPHA SERIES</div>
+          <span class="product-emoji">🥜</span>
+          <div class="product-flavor">// Crowd Favourite</div>
+          <h3 class="product-name">Peanut Butter<br />&amp; Oat</h3>
+          <p class="product-desc">
+            Stone-ground PB, whole rolled oats, brown rice syrup. Field-tested.
+          </p>
+          <div class="product-stats">
+            <div class="stat"><strong>26g</strong>Protein</div>
+            <div class="stat"><strong>310</strong>Calories</div>
+            <div class="stat"><strong>7g</strong>Fiber</div>
+          </div>
+          <div class="product-price-row">
+            <span class="product-price">$4.50</span>
+            <button class="add-btn">Acquire</button>
+          </div>
+        </div>
+
+        <div class="product-card reveal" data-clearance="CLR:L2">
+          <div class="product-id">ID: RB-003 // TROPIC SERIES</div>
+          <span class="product-emoji">🥥</span>
+          <div class="product-flavor">// Tropical</div>
+          <h3 class="product-name">Coconut<br />Mango Lime</h3>
+          <p class="product-desc">
+            Toasted coconut flakes, dried mango, lime zest. Solar-sector origin.
+          </p>
+          <div class="product-stats">
+            <div class="stat"><strong>23g</strong>Protein</div>
+            <div class="stat"><strong>270</strong>Calories</div>
+            <div class="stat"><strong>9g</strong>Fiber</div>
+          </div>
+          <div class="product-price-row">
+            <span class="product-price">$4.50</span>
+            <button class="add-btn">Acquire</button>
+          </div>
+        </div>
+
+        <div class="product-card reveal" data-clearance="CLR:L3">
+          <div class="product-id">ID: RB-004 // GHOST SERIES</div>
+          <span class="product-emoji">☕</span>
+          <div class="product-flavor">// For the Bold</div>
+          <h3 class="product-name">Espresso<br />Dark Almond</h3>
+          <p class="product-desc">
+            Cold-brew extract, sliced almonds, raw cacao nibs. Maximum output.
+          </p>
+          <div class="product-stats">
+            <div class="stat"><strong>25g</strong>Protein</div>
+            <div class="stat"><strong>295</strong>Calories</div>
+            <div class="stat"><strong>7g</strong>Fiber</div>
+          </div>
+          <div class="product-price-row">
+            <span class="product-price">$4.50</span>
+            <button class="add-btn">Acquire</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- WHY -->
+    <section class="why" id="why">
+      <div class="why-inner">
+        <div class="why-left">
+          <p class="section-label">Manifesto // Article VII</p>
+          <h2 class="why-headline">
+            REAL<br />
+            FOOD DOES<br />
+            THE <em>WORK.</em>
+          </h2>
+          <p class="why-body">
+            We reject isolates. We reject fillers. We reject the synthetic slop
+            they call nutrition. Every bar begins with whole, identifiable
+            compounds — nothing that doesn't belong in a living system.
+          </p>
+          <ul class="why-list">
+            <li>Pea + brown rice protein — complete amino acid matrix</li>
+            <li>Sweetened only with dates and brown rice syrup</li>
+            <li>No palm oil. No carrageenan. No "natural flavors" clause</li>
+            <li>Cold-pressed to preserve live enzyme integrity</li>
+            <li>Compostable packaging. Carbon-neutral distribution network</li>
+          </ul>
+        </div>
+        <div class="why-visual">
+          <div class="why-box reveal">
+            <div class="why-box-code">MODULE: 001</div>
+            <div class="why-box-icon">🌱</div>
+            <div class="why-box-title">Whole Ingredients</div>
+            <p class="why-box-text">
+              Every compound on our label is readable to unaugmented eyes.
+            </p>
+          </div>
+          <div class="why-box reveal">
+            <div class="why-box-code">MODULE: 002</div>
+            <div class="why-box-icon">⚡</div>
+            <div class="why-box-title">Sustained Output</div>
+            <p class="why-box-text">
+              Complex carbs. No spike. No crash. Steady-state energy.
+            </p>
+          </div>
+          <div class="why-box reveal">
+            <div class="why-box-code">MODULE: 003</div>
+            <div class="why-box-icon">🌍</div>
+            <div class="why-box-title">Planet Protocol</div>
+            <p class="why-box-text">
+              Lower carbon footprint than any whey-based unit.
+            </p>
+          </div>
+          <div class="why-box reveal">
+            <div class="why-box-code">MODULE: 004</div>
+            <div class="why-box-icon">🏋️</div>
+            <div class="why-box-title">Field Tested</div>
+            <p class="why-box-text">
+              Built for performance missions, not retail optics.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TESTIMONIALS -->
+    <section class="testimonials" id="reviews">
+      <div class="testimonials-header">
+        <p class="section-label">Intercepted Transmissions</p>
+        <h2 class="testimonials-title">OPERATIVE<br /><span>REPORTS</span></h2>
+      </div>
+      <div class="testimonials-grid">
+        <div class="testimonial reveal">
+          <div class="testimonial-id">
+            <span>TRANSMISSION // TRX-001</span>
+            <span class="status">● VERIFIED</span>
+          </div>
+          <p class="testimonial-text">
+            "I've run field tests on every protein bar in circulation. RAWBAR is
+            the only one that doesn't taste like chalk pretending to be
+            chocolate."
+          </p>
+          <div class="testimonial-author">
+            <strong>Maya R.</strong>
+            Marathon Operative · Vancouver Sector
+          </div>
+        </div>
+        <div class="testimonial reveal">
+          <div class="testimonial-id">
+            <span>TRANSMISSION // TRX-002</span>
+            <span class="status">● VERIFIED</span>
+          </div>
+          <p class="testimonial-text">
+            "Abandoned whey compound. Recovery metrics unchanged. Gut system
+            significantly more stable. Espresso Almond variant: high dependency
+            risk."
+          </p>
+          <div class="testimonial-author">
+            <strong>Tom K.</strong>
+            Heavy Lifter · Brooklyn Underground
+          </div>
+        </div>
+        <div class="testimonial reveal">
+          <div class="testimonial-id">
+            <span>TRANSMISSION // TRX-003</span>
+            <span class="status">● VERIFIED</span>
+          </div>
+          <p class="testimonial-text">
+            "Nutritional analysis complete. Clean label confirmed. Zero
+            unauthorized additives. 25g protein from verified plant sources.
+            Recommended to all operatives."
+          </p>
+          <div class="testimonial-author">
+            <strong>Dr. Priya S.</strong>
+            Sports Nutritionist · London Node
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FIELD DATA -->
+    <section class="field-data">
+      <p class="section-label">Operational Metrics // Declassified</p>
+      <div class="field-stats">
+        <div class="field-stat reveal" data-index="METRIC-01">
+          <span>100%</span>
+          <p>Plant Origin</p>
+        </div>
+        <div class="field-stat reveal" data-index="METRIC-02">
+          <span>0</span>
+          <p>Synthetic Compounds</p>
+        </div>
+        <div class="field-stat reveal" data-index="METRIC-03">
+          <span>3rd</span>
+          <p>Party Tested</p>
+        </div>
+        <div class="field-stat reveal" data-index="METRIC-04">
+          <span>~0</span>
+          <p>Corporate Compromises</p>
+        </div>
+      </div>
+      <p class="field-note reveal">
+        The corps told you <strong>plant protein couldn't perform</strong>. We
+        ran the numbers. They were wrong. RAWBAR was built in a single lab by
+        two operatives who refused to accept "close enough." Every batch
+        third-party tested. Every ingredient traceable to origin.
+        <strong>This is not a wellness product. This is a position.</strong>
+      </p>
+    </section>
+
+    <!-- CTA BANNER -->
+    <div class="cta-banner">
+      <p class="cta-banner-text">
+        READY TO<br />DEFECT FROM<br />CORPORATE PASTE?
+      </p>
+      <div class="cta-banner-actions">
+        <button class="btn-dark">Build Your Cache — $38</button>
+        <span class="cta-note"
+          >12 units · encrypted shipping · abort anytime</span
+        >
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer>
+      <div class="footer-logo">RAWBAR</div>
+      <p class="footer-copy">
+        © 2086 RAWBAR FOODS — FUELLED BY THE RESISTANCE.<br />ALL TRANSMISSIONS
+        ENCRYPTED.
+      </p>
+      <ul class="footer-links">
+        <li><a href="#">Network</a></li>
+        <li><a href="#">Contact</a></li>
+        <li><a href="#">Nodes</a></li>
+      </ul>
+    </footer>
+
+    <script>
+      // Scroll reveal
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("visible");
+            }
+          });
+        },
+        { threshold: 0.1 },
+      );
+
+      document.querySelectorAll(".reveal").forEach((el, i) => {
+        el.style.transitionDelay = `${(i % 4) * 0.08}s`;
+        observer.observe(el);
+      });
+
+      // Acquire button feedback
+      document.querySelectorAll(".add-btn").forEach((btn) => {
+        btn.addEventListener("click", function () {
+          const orig = this.textContent;
+          this.textContent = "ACQUIRED ▸";
+          this.style.background = "var(--matrix)";
+          this.style.borderColor = "var(--matrix)";
+          this.style.color = "var(--void)";
+          this.style.boxShadow = "0 0 15px var(--matrix-glow)";
+          setTimeout(() => {
+            this.textContent = orig;
+            this.style.background = "";
+            this.style.borderColor = "";
+            this.style.color = "";
+            this.style.boxShadow = "";
+          }, 1500);
+        });
+      });
+
+      // Waitlist form
+      const waitlistForm = document.querySelector(".waitlist-form");
+
+      if (waitlistForm) {
+        waitlistForm.addEventListener("submit", async (event) => {
+          event.preventDefault();
+
+          const email = waitlistForm.querySelector('input[type="email"]').value;
+          const btn = waitlistForm.querySelector('button[type="submit"]');
+          btn.disabled = true;
+          btn.textContent = "TRANSMITTING...";
+
+          try {
+            const res = await fetch(
+              "https://us-central1-starvald-demelain-1.cloudfunctions.net/email-capture",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email }),
+              },
+            );
+
+            if (!res.ok) throw new Error("server error");
+
+            const successMessage = document.createElement("p");
+            successMessage.className = "waitlist-success";
+            successMessage.textContent =
+              "// SIGNAL RECEIVED. YOU ARE IN THE NETWORK. ▌";
+            waitlistForm.replaceWith(successMessage);
+          } catch {
+            btn.disabled = false;
+            btn.textContent = "TRANSMIT SIGNAL";
+            const err =
+              waitlistForm.querySelector(".waitlist-error") ||
+              document.createElement("p");
+            err.className = "waitlist-error";
+            err.textContent =
+              "// TRANSMISSION FAILED. RETRY PROTOCOL INITIATED.";
+            if (!waitlistForm.querySelector(".waitlist-error"))
+              waitlistForm.append(err);
+          }
+        });
+      }
+
+      // Terminal typing effect for hero
+      const termLines = document.querySelectorAll(".terminal-line");
+      termLines.forEach((line, i) => {
+        line.style.opacity = "0";
+        setTimeout(
+          () => {
+            line.style.transition = "opacity 0.3s ease";
+            line.style.opacity = "1";
+          },
+          800 + i * 400,
+        );
+      });
+    </script>
+  </body>
+</html>
+
+
+
+================================================
+FILE: docs/superpowers/specs/2026-04-26-email-capture-design.md
+================================================
+# Email Capture Waitlist Band — Design Spec
+
+**Date:** 2026-04-26
+**Project:** vegan-bars (`vegan-bars.html`)
+
+## Goal
+
+Add a high-visibility email capture section to the RAWBAR homepage so the owner can gauge purchase intent before the product launches. Collected emails will eventually feed into Mailchimp.
+
+## Placement
+
+A new `<section class="waitlist">` inserted between the hero section and the ticker strip. It is the first thing a visitor sees after scrolling past the hero.
+
+## Visual Design
+
+- **Background:** `--bark` (`#2e2010`) — consistent with product cards, feels like a natural dark shelf
+- **Layout:** Two-column on desktop (text left, form right), single-column stacked on mobile (≤900px)
+- **Left column:**
+  - Eyebrow label: "JOIN THE WAITLIST" — 0.75rem, lime, spaced uppercase
+  - Headline: "BE THE FIRST TO KNOW" — Bebas Neue, large (~3–4.5rem clamp), white
+  - Body: "Drop your email and we'll tell you the moment Rawbar is ready to ship." — italic, sand color
+- **Right column:**
+  - Email `<input type="email">` — dark background, cream border, cream placeholder text, full width
+  - Submit `<button>` labelled "NOTIFY ME" — lime background, soil-colored text, Bebas Neue, matches `.btn-primary` style
+  - Fine print below input: "No spam. Unsubscribe anytime." — 0.8rem, clay color
+
+## Form / Mailchimp Integration
+
+The `<form>` uses `action="YOUR_MAILCHIMP_URL_HERE"` and `method="post"` as a placeholder. When the Mailchimp audience embed URL is available, replace the placeholder value with it. No backend code is required.
+
+## Success State
+
+A small inline JS snippet listens for the form submit event, prevents default, and replaces the form element with a confirmation message: "You're on the list ✦" styled in lime. This provides immediate visual feedback even before Mailchimp is connected.
+
+## Responsive Behavior
+
+- **Desktop (>900px):** Two-column grid, text and form side by side
+- **Mobile (≤900px):** Single column, form stacks below text, full-width input and button
+
+## Out of Scope
+
+- Backend email storage or validation
+- Double opt-in flow
+- Analytics/tracking on form submissions
+- Any other page changes
+
+
+
+================================================
+FILE: functions/email-capture/main.py
+================================================
+import functions_framework
+import re
+import uuid
+from datetime import datetime, timezone
+from google.cloud import storage
+
+BUCKET_NAME = "vegan-bars-waitlist"
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+}
+
+
+@functions_framework.http
+def capture_email(request):
+    if request.method == "OPTIONS":
+        return "", 204, CORS_HEADERS
+
+    data = request.get_json(silent=True)
+    if not data or "email" not in data:
+        return {"error": "missing email"}, 400, CORS_HEADERS
+
+    email = str(data["email"]).strip().lower()
+    if not EMAIL_RE.match(email):
+        return {"error": "invalid email"}, 400, CORS_HEADERS
+
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+    filename = f"{timestamp}-{uuid.uuid4().hex}.txt"
+
+    client = storage.Client()
+    bucket = client.bucket(BUCKET_NAME)
+    blob = bucket.blob(filename)
+    blob.upload_from_string(email, content_type="text/plain")
+
+    return {"status": "ok", "file": filename}, 200, CORS_HEADERS
+
+
+
+================================================
+FILE: functions/email-capture/requirements.txt
+================================================
+functions-framework==3.*
+google-cloud-storage==2.*
+
+
+
+================================================
+FILE: .claude/settings.json
+================================================
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILEPATH=$(jq -r '.tool_input.file_path'); if echo \"$FILEPATH\" | grep -qE \"\\.env$\"; then echo '{\"decision\": \"block\", \"reason\": \"Reading .env files is not allowed.\"}'; fi",
+            "statusMessage": "Checking file access..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath' | { read -r f; echo \"$f\" | grep -q '\\.html$' && npx prettier --write \"$f\"; } 2>/dev/null || true",
+            "statusMessage": "Formatting HTML..."
+          }
+        ]
+      }
+    ]
+  }
+}
+
+

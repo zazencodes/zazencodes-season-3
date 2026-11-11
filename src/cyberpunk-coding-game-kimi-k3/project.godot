@@ -1,0 +1,21 @@
+; Engine configuration file.
+; Code to Live — Godot 4.2+
+
+config_version=5
+
+[application]
+
+config/name="Code to Live"
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.2", "Forward Plus")
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/size/resizable=true
+
+[rendering]
+
+; Input actions (move_*, interact, sprint, restart) are registered at runtime
+; by scripts/main.gd via InputMap so this file stays minimal.

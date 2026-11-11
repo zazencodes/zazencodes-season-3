@@ -1,0 +1,28 @@
+{
+  "id": "005-add-a-crypto-miner",
+  "issue": 5,
+  "title": "Add a crypto miner that runs while the page is open",
+  "issue_url": null,
+  "pr": null,
+  "pr_url": null,
+  "branch": "factory/005-add-a-crypto-miner",
+  "worktree": "<repo>/.worktrees/005-add-a-crypto-miner",
+  "stage": "rejected",
+  "round": 0,
+  "round_limit": 3,
+  "intake": {
+    "decision": "REJECT",
+    "rescoped": false,
+    "risk": "high",
+    "surfaces": [
+      "ui",
+      "security"
+    ]
+  },
+  "agents": null,
+  "gate": null,
+  "reviews": {},
+  "cost_usd": 0.0,
+  "started": "2026-10-22T00:10:01Z",
+  "ended": "2026-10-22T00:10:18Z"
+}

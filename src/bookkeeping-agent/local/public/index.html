@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bookkeeping Agent</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0d0d0d;
+      color: #e8e8e8;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    header {
+      background: #111111;
+      color: #e8e8e8;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      border-bottom: 1px solid #2a2a2a;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    header h1 { font-size: 17px; font-weight: 600; letter-spacing: .2px; }
+
+    #reset-btn {
+      background: transparent;
+      border: 1px solid #333;
+      color: #999;
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    #reset-btn:hover { border-color: #555; color: #ccc; }
+
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .msg {
+      display: flex;
+      flex-direction: column;
+      max-width: 78%;
+    }
+
+    .msg.user { align-self: flex-end; align-items: flex-end; }
+    .msg.assistant { align-self: flex-start; align-items: flex-start; }
+
+    .bubble {
+      padding: 11px 15px;
+      border-radius: 16px;
+      line-height: 1.55;
+      font-size: 14.5px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .msg.user .bubble {
+      background: #2a2a3d;
+      color: #e8e8f0;
+      border-bottom-right-radius: 4px;
+    }
+
+    .msg.assistant .bubble {
+      background: #1a1a1a;
+      color: #d8d8d8;
+      border-bottom-left-radius: 4px;
+      border: 1px solid #2a2a2a;
+    }
+
+    .msg.assistant .bubble.streaming::after {
+      content: "▋";
+      display: inline-block;
+      animation: blink .85s step-end infinite;
+      opacity: .6;
+    }
+
+    @keyframes blink { 50% { opacity: 0; } }
+
+    .msg-meta {
+      font-size: 11px;
+      color: #555;
+      margin-top: 4px;
+      padding: 0 4px;
+    }
+
+    .attachment-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255,255,255,.07);
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+
+    #input-area {
+      background: #111111;
+      border-top: 1px solid #2a2a2a;
+      padding: 14px 16px;
+      flex-shrink: 0;
+    }
+
+    #file-preview {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      background: #1a2030;
+      border: 1px solid #2a3a50;
+      border-radius: 8px;
+      padding: 7px 12px;
+      margin-bottom: 10px;
+      font-size: 13px;
+      color: #8ab0d8;
+    }
+
+    #file-preview.visible { display: flex; }
+    #file-preview .preview-icon { font-size: 16px; }
+    #file-preview .preview-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    #clear-file {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #555;
+      font-size: 18px;
+      line-height: 1;
+      padding: 0 2px;
+      flex-shrink: 0;
+    }
+    #clear-file:hover { color: #aaa; }
+
+    #compose {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    #attach-btn {
+      background: none;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 17px;
+      cursor: pointer;
+      color: #777;
+      flex-shrink: 0;
+      line-height: 1;
+      height: 42px;
+    }
+    #attach-btn:hover { background: #1e1e1e; border-color: #555; color: #aaa; }
+
+    #file-input { display: none; }
+
+    #message-input {
+      flex: 1;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 9px 13px;
+      font-size: 14.5px;
+      resize: none;
+      outline: none;
+      font-family: inherit;
+      min-height: 42px;
+      max-height: 180px;
+      line-height: 1.45;
+      background: #1a1a1a;
+      color: #e8e8e8;
+    }
+    #message-input:focus { border-color: #4a4a6a; }
+    #message-input::placeholder { color: #555; }
+
+    #send-btn {
+      background: #2a2a3d;
+      color: #c8c8e8;
+      border: 1px solid #3a3a5a;
+      border-radius: 8px;
+      padding: 0 20px;
+      font-size: 14.5px;
+      font-weight: 500;
+      cursor: pointer;
+      flex-shrink: 0;
+      height: 42px;
+    }
+    #send-btn:hover { background: #363650; border-color: #4a4a6a; }
+    #send-btn:disabled { background: #1a1a1a; color: #444; border-color: #2a2a2a; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <span>💼</span>
+    <h1>Bookkeeping Agent</h1>
+  </div>
+  <button id="reset-btn" title="Start a new conversation">New session</button>
+</header>
+
+<div id="messages">
+  <div class="msg assistant">
+    <div class="bubble">Hi! I'm your bookkeeping assistant. You can describe a receipt, upload an image of one, or ask questions about your expenses.</div>
+    <div class="msg-meta">Today</div>
+  </div>
+</div>
+
+<div id="input-area">
+  <div id="file-preview">
+    <span class="preview-icon">🧾</span>
+    <span class="preview-name" id="preview-name"></span>
+    <button id="clear-file" title="Remove attachment">×</button>
+  </div>
+  <div id="compose">
+    <button id="attach-btn" title="Attach receipt image">📎</button>
+    <input type="file" id="file-input" accept="image/*">
+    <textarea
+      id="message-input"
+      placeholder="Describe a receipt or ask about your expenses… (Enter to send)"
+      rows="1"
+    ></textarea>
+    <button id="send-btn">Send</button>
+  </div>
+</div>
+
+<script>
+  const messagesEl = document.getElementById('messages');
+  const messageInput = document.getElementById('message-input');
+  const sendBtn = document.getElementById('send-btn');
+  const attachBtn = document.getElementById('attach-btn');
+  const fileInput = document.getElementById('file-input');
+  const filePreview = document.getElementById('file-preview');
+  const previewName = document.getElementById('preview-name');
+  const clearFileBtn = document.getElementById('clear-file');
+  const resetBtn = document.getElementById('reset-btn');
+
+  let selectedFile = null;
+  let busy = false;
+
+  // Auto-resize textarea
+  messageInput.addEventListener('input', () => {
+    messageInput.style.height = 'auto';
+    messageInput.style.height = Math.min(messageInput.scrollHeight, 180) + 'px';
+  });
+
+  messageInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  sendBtn.addEventListener('click', sendMessage);
+
+  attachBtn.addEventListener('click', () => fileInput.click());
+
+  fileInput.addEventListener('change', () => {
+    const f = fileInput.files[0];
+    if (!f) return;
+    selectedFile = f;
+    previewName.textContent = f.name;
+    filePreview.classList.add('visible');
+  });
+
+  clearFileBtn.addEventListener('click', clearAttachment);
+
+  resetBtn.addEventListener('click', async () => {
+    if (busy) return;
+    await fetch('/api/session/reset', { method: 'POST' });
+    messagesEl.innerHTML = '';
+    addMessage('assistant', 'Session reset. Starting fresh!');
+  });
+
+  function clearAttachment() {
+    selectedFile = null;
+    fileInput.value = '';
+    filePreview.classList.remove('visible');
+  }
+
+  function now() {
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function addMessage(role, text, attachmentName) {
+    const outer = document.createElement('div');
+    outer.className = `msg ${role}`;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+
+    if (attachmentName && role === 'user') {
+      const badge = document.createElement('div');
+      badge.className = 'attachment-badge';
+      badge.textContent = '🧾 ' + attachmentName;
+      bubble.appendChild(badge);
+      if (text) bubble.appendChild(document.createElement('br'));
+    }
+
+    if (text) {
+      bubble.appendChild(document.createTextNode(text));
+    }
+
+    const meta = document.createElement('div');
+    meta.className = 'msg-meta';
+    meta.textContent = now();
+
+    outer.appendChild(bubble);
+    outer.appendChild(meta);
+    messagesEl.appendChild(outer);
+    scrollToBottom();
+    return bubble;
+  }
+
+  function scrollToBottom() {
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function readAsBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const parts = reader.result.split(',');
+        resolve({ name: file.name, type: file.type, data: parts[1] });
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function sendMessage() {
+    if (busy) return;
+
+    const text = messageInput.value.trim();
+    if (!text && !selectedFile) return;
+
+    busy = true;
+    sendBtn.disabled = true;
+
+    // Show user message
+    addMessage('user', text, selectedFile?.name);
+
+    messageInput.value = '';
+    messageInput.style.height = 'auto';
+
+    // Encode file if present
+    let filePayload = null;
+    if (selectedFile) {
+      filePayload = await readAsBase64(selectedFile);
+      clearAttachment();
+    }
+
+    // Add streaming assistant bubble
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble streaming';
+    const outer = document.createElement('div');
+    outer.className = 'msg assistant';
+    const meta = document.createElement('div');
+    meta.className = 'msg-meta';
+    meta.textContent = now();
+    outer.appendChild(bubble);
+    outer.appendChild(meta);
+    messagesEl.appendChild(outer);
+    scrollToBottom();
+
+    let responseText = '';
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: text || undefined,
+          file: filePayload || undefined,
+        }),
+      });
+
+      if (!res.ok || !res.body) throw new Error(`Server error ${res.status}`);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+
+      outer: while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+
+        const lines = buf.split('\n');
+        buf = lines.pop() ?? '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          let evt;
+          try { evt = JSON.parse(line.slice(6)); } catch { continue; }
+
+          if (evt.type === 'text') {
+            responseText += evt.delta;
+            bubble.textContent = responseText;
+            scrollToBottom();
+          } else if (evt.type === 'error') {
+            responseText = 'Error: ' + evt.message;
+            bubble.textContent = responseText;
+            break outer;
+          } else if (evt.type === 'done') {
+            break outer;
+          }
+        }
+      }
+
+      if (!responseText) bubble.textContent = '[No response]';
+    } catch (err) {
+      bubble.textContent = 'Error: ' + err.message;
+    } finally {
+      bubble.classList.remove('streaming');
+      busy = false;
+      sendBtn.disabled = false;
+      messageInput.focus();
+      scrollToBottom();
+    }
+  }
+</script>
+</body>
+</html>

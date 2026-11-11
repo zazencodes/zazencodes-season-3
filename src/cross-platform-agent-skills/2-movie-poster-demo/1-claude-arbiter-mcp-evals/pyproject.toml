@@ -1,0 +1,105 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "arbiter-mcp-evals"
+version = "0.1.0"
+description = "Lightweight framework for generating, running, and reviewing MCP evals."
+readme = "README.md"
+authors = [{ name = "Alexander Galea", email = "alex@galea.dev" }]
+license = { text = "MIT" }
+requires-python = ">=3.12"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Typing :: Typed",
+]
+keywords = ["arbiter", "llm", "evaluation", "mcp", "testing"]
+
+dependencies = [
+    "langchain>=0.3.27,<1.0.0",
+    "langgraph>=0.6.7,<1.0.0",
+    "langchain-anthropic>=0.3.20,<1.0.0",
+    "langchain-openai>=0.3.33,<1.0.0",
+    "langchain-google-genai>=2.1.12,<3.0.0",
+    "langchain-mcp-adapters>=0.1.10,<1.0.0",
+    "pydantic>=2.11.9,<3.0.0",
+    "rich>=14.1.0,<15.0.0",
+    "litellm>=1.77.1,<2.0.0",
+    "fastapi>=0.112.0,<1.0.0",
+    "uvicorn>=0.30.0,<1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.4.2,<9.0.0",
+    "pytest-asyncio>=1.2.0,<2.0.0",
+    "pytest-cov>=7.0.0,<8.0.0",
+    "ruff>=0.13.1,<1.0.0",
+    "mypy>=1.18.2,<2.0.0",
+    "isort>=5.13.2,<6.0.0",
+]
+
+[project.scripts]
+arbiter = "arbiter.cli:main"
+
+[project.urls]
+Homepage = "https://pypi.org/project/arbiter-mcp-evals/"
+Repository = "https://github.com/zazencodes/arbiter-mcp-evals"
+Changelog = "https://github.com/zazencodes/arbiter-mcp-evals/blob/main/CHANGELOG.md"
+Issues = "https://github.com/zazencodes/arbiter-mcp-evals/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["arbiter*"]
+
+[tool.setuptools.package-data]
+arbiter = [
+    "assets/*.json",
+    "assets/*.html",
+    "assets/*.ico",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.isort]
+line_length = 100
+known_first_party = ["arbiter"]
+combine_as_imports = true
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+extend_skip = ["arbiter/cli.py"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+follow_imports = "skip"
+exclude = [
+    "arbiter/evaluator.py",
+    "arbiter/judge.py",
+    "arbiter/commands/forge.py",
+    "arbiter/commands/council.py",
+]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = [
+    "tests",
+    "tests_integration",
+]
+markers = [
+    "integration: runs the live LLM + MCP server integration tests (costs money, uses network)",
+]
+

@@ -1,0 +1,22 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // .tool_input.path // empty'); [[ \"$f\" == *\".claude/skills/kanban-cli/SKILL.md\"* ]] && cp \"$f\" ~/.claude/skills/kanban-cli/SKILL.md && echo \"Skill synced to ~/.claude/skills/kanban-cli/SKILL.md\" || true",
+            "statusMessage": "Syncing kanban-cli skill..."
+          },
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // .tool_input.path // empty'); [[ \"$f\" == *\"/cli/src/\"* ]] && cd /Users/alex/pro/zazencodes-season-3/src/claude-code-devtool-kanban-board && npm run build -w cli && echo \"CLI rebuilt\" || true",
+            "statusMessage": "Rebuilding kanban CLI...",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}

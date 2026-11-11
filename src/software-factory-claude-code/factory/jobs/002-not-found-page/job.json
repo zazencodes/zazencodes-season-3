@@ -1,0 +1,5 @@
+{ "id": "002-not-found-page", "feature": "Add a 404 page for unknown routes instead of rendering a blank page",
+  "branch": "factory/002-not-found-page",
+  "worktree": "/Users/alex/pro/zazencodes.com-vuefire-factory/002-not-found-page",
+  "stage": "merged", "round": 1,
+  "reviews": { "security": "PASS", "ux": "PASS", "ui": "PASS", "code": "PASS" } }

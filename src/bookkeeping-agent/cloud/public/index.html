@@ -1,0 +1,860 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>The Ledger — bookkeeping agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,300..900,0..100,0..1;1,9..144,300..900,0..100,0..1&family=JetBrains+Mono:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #efe4cc;
+    --ink-dim: #b8a986;
+    --ink-faint: #6b6044;
+    --paper: #0c0a07;
+    --paper-2: #14110b;
+    --paper-3: #1c180f;
+    --rule: rgba(239, 228, 204, 0.07);
+    --rule-strong: rgba(239, 228, 204, 0.18);
+    --amber: #d99a3b;
+    --amber-glow: #f5c06a;
+    --crimson: #c54a3a;
+    --moss: #7a8c4a;
+    --serif: "Fraunces", "Hoefler Text", "Iowan Old Style", Georgia, serif;
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  /* Vellum-dark texture: faint warm vignette + film grain + ruled lines */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 30% 0%, rgba(217, 154, 59, 0.08), transparent 60%),
+      radial-gradient(ellipse 60% 40% at 90% 100%, rgba(197, 74, 58, 0.05), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::after {
+    content: "";
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.94 0 0 0 0 0.89 0 0 0 0 0.80 0 0 0 0.06 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    mix-blend-mode: overlay;
+    opacity: 0.55;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .frame {
+    position: relative;
+    z-index: 2;
+    height: 100vh;
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      "rail header"
+      "rail log"
+      "rail composer";
+  }
+
+  /* Left rail with line numbers + brand mark rotated */
+  .rail {
+    grid-area: rail;
+    border-right: 1px solid var(--rule);
+    background: linear-gradient(180deg, var(--paper-2), var(--paper));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 18px 0 14px;
+    color: var(--ink-faint);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+  }
+  .rail .mark {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 18px;
+    color: var(--ink-dim);
+    letter-spacing: 0.06em;
+    margin-top: auto;
+    margin-bottom: 8px;
+  }
+  .rail .glyph {
+    font-family: var(--serif);
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--amber);
+    line-height: 1;
+    margin-bottom: 14px;
+    text-shadow: 0 0 18px rgba(245, 192, 106, 0.35);
+  }
+  .rail .stamp {
+    font-family: var(--mono);
+    color: var(--ink-faint);
+    margin-bottom: 12px;
+  }
+
+  /* Header — newspaper-style nameplate */
+  header {
+    grid-area: header;
+    padding: 22px 36px 18px;
+    border-bottom: 1px solid var(--rule);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 24px;
+    background:
+      linear-gradient(180deg, rgba(28,24,15,0.6), transparent);
+  }
+  header .title {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-style: italic;
+    font-size: clamp(28px, 4vw, 44px);
+    line-height: 1;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  header .title em {
+    font-style: italic;
+    font-variation-settings: "WONK" 1, "SOFT" 30;
+    color: var(--amber-glow);
+  }
+  header .meta {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    color: var(--ink-faint);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  header .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--moss);
+    box-shadow: 0 0 10px rgba(122,140,74,0.7);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: .6 } 50% { opacity: 1 } }
+
+  button.reset {
+    appearance: none;
+    background: transparent;
+    border: 1px solid var(--rule-strong);
+    color: var(--ink-dim);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: all .2s ease;
+  }
+  button.reset:hover {
+    border-color: var(--crimson);
+    color: var(--crimson);
+    background: rgba(197,74,58,0.06);
+  }
+
+  /* The ledger — message log */
+  .log {
+    grid-area: log;
+    overflow-y: auto;
+    padding: 28px 36px 40px;
+    background-image:
+      repeating-linear-gradient(
+        to bottom,
+        transparent 0,
+        transparent 27px,
+        var(--rule) 27px,
+        var(--rule) 28px
+      );
+    background-position: 0 8px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--rule-strong) transparent;
+  }
+  .log::-webkit-scrollbar { width: 8px; }
+  .log::-webkit-scrollbar-thumb { background: var(--rule-strong); border-radius: 0; }
+
+  .entry {
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    gap: 20px;
+    padding: 14px 0;
+    border-bottom: 1px dashed var(--rule);
+    animation: rise .35s ease both;
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .entry .gutter {
+    text-align: right;
+    color: var(--ink-faint);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding-top: 4px;
+    line-height: 1.4;
+  }
+  .entry .gutter .n {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-style: italic;
+    color: var(--ink-dim);
+    display: block;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .entry .body {
+    font-family: var(--mono);
+    color: var(--ink);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .entry.user .body {
+    color: var(--amber-glow);
+  }
+  .entry.user .gutter .n { color: var(--amber); }
+  .entry.assistant .body { color: var(--ink); }
+  .entry.system { opacity: .8; }
+  .entry.system .body {
+    color: var(--ink-faint);
+    font-style: italic;
+    font-family: var(--serif);
+    font-size: 14px;
+  }
+
+  .tool {
+    color: var(--ink-faint);
+    font-style: italic;
+    font-family: var(--serif);
+    font-size: 13px;
+    margin: 6px 0;
+    padding-left: 14px;
+    border-left: 2px solid var(--rule-strong);
+  }
+  .tool::before {
+    content: "→ ";
+    color: var(--amber);
+    font-style: normal;
+    font-family: var(--mono);
+  }
+  .tool .name { color: var(--ink-dim); font-style: normal; font-family: var(--mono); font-size: 12px; }
+  .tool.done { opacity: .55; }
+
+  .err {
+    color: var(--crimson);
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 14px;
+    border-left: 2px solid var(--crimson);
+    padding-left: 14px;
+    margin-top: 8px;
+  }
+
+  /* Caret while streaming */
+  .caret::after {
+    content: "▍";
+    color: var(--amber);
+    margin-left: 2px;
+    animation: blink 1.05s steps(2, end) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0 } }
+
+  /* Composer */
+  .composer {
+    grid-area: composer;
+    border-top: 1px solid var(--rule);
+    background:
+      linear-gradient(0deg, var(--paper-2), transparent);
+    padding: 16px 36px 22px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 14px;
+    align-items: end;
+    position: relative;
+  }
+  .composer.dragover::after {
+    content: "drop receipts here";
+    position: absolute;
+    inset: 8px;
+    border: 1.5px dashed var(--amber);
+    background: rgba(217,154,59,0.06);
+    color: var(--amber-glow);
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .field {
+    position: relative;
+    border: 1px solid var(--rule-strong);
+    background: rgba(20, 17, 11, 0.7);
+    transition: border-color .2s ease, box-shadow .2s ease;
+  }
+  .field:focus-within {
+    border-color: var(--amber);
+    box-shadow: 0 0 0 1px rgba(217,154,59,0.35), 0 0 28px -12px rgba(245,192,106,0.6);
+  }
+  .attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 12px 0;
+  }
+  .attachments:empty { display: none; }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px 4px 4px;
+    border: 1px solid var(--rule-strong);
+    background: rgba(28,24,15,0.8);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-dim);
+    max-width: 240px;
+  }
+  .chip img, .chip .icon {
+    width: 32px; height: 32px;
+    object-fit: cover;
+    background: var(--paper-3);
+    display: block;
+    flex-shrink: 0;
+  }
+  .chip .icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--amber);
+    font-size: 14px;
+  }
+  .chip .name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .chip .x {
+    background: transparent;
+    border: 0;
+    color: var(--ink-faint);
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 0 4px;
+    line-height: 1;
+  }
+  .chip .x:hover { color: var(--crimson); }
+
+  .clip-btn {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    color: var(--ink-faint);
+    cursor: pointer;
+    padding: 6px 10px;
+    height: 56px;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 22px;
+    transition: color .2s ease;
+  }
+  .clip-btn:hover { color: var(--amber); }
+  .composer-tools {
+    display: flex;
+    align-items: end;
+    gap: 6px;
+  }
+  .msg-thumbs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .msg-thumbs img {
+    width: 84px; height: 84px;
+    object-fit: cover;
+    border: 1px solid var(--rule-strong);
+    background: var(--paper-3);
+  }
+  .msg-thumbs .file {
+    width: 84px; height: 84px;
+    border: 1px solid var(--rule-strong);
+    background: var(--paper-3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--amber);
+    font-size: 13px;
+    text-align: center;
+    padding: 6px;
+  }
+  .field .tag {
+    position: absolute;
+    top: -9px; left: 14px;
+    background: var(--paper);
+    padding: 0 8px;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 12px;
+    color: var(--ink-faint);
+    letter-spacing: 0.04em;
+  }
+  textarea {
+    display: block;
+    width: 100%;
+    min-height: 56px;
+    max-height: 220px;
+    resize: none;
+    padding: 16px 18px;
+    background: transparent;
+    border: 0;
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.55;
+    outline: none;
+    caret-color: var(--amber);
+  }
+  textarea::placeholder { color: var(--ink-faint); font-style: italic; }
+
+  button.send {
+    appearance: none;
+    border: 1px solid var(--amber);
+    background: linear-gradient(180deg, rgba(217,154,59,0.18), rgba(217,154,59,0.06));
+    color: var(--amber-glow);
+    padding: 0 22px;
+    height: 56px;
+    min-width: 120px;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 18px;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: all .2s ease;
+    position: relative;
+  }
+  button.send:hover:not(:disabled) {
+    background: linear-gradient(180deg, rgba(245,192,106,0.28), rgba(217,154,59,0.12));
+    box-shadow: 0 0 24px -6px rgba(245,192,106,0.55);
+  }
+  button.send:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+  }
+  button.send .kbd {
+    display: block;
+    font-family: var(--mono);
+    font-style: normal;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-top: 2px;
+  }
+
+  .footnote {
+    grid-column: 1 / -1;
+    color: var(--ink-faint);
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-align: center;
+    margin-top: 4px;
+  }
+  .footnote span { color: var(--amber); font-style: normal; font-family: var(--mono); }
+
+  @media (max-width: 720px) {
+    .frame { grid-template-columns: 36px 1fr; }
+    .rail .mark { font-size: 14px; }
+    header, .log, .composer { padding-left: 18px; padding-right: 18px; }
+    .entry { grid-template-columns: 36px 1fr; gap: 12px; }
+    header .title { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+  <div class="frame">
+    <aside class="rail" aria-hidden="true">
+      <div class="glyph">§</div>
+      <div class="stamp">No.<br/>I</div>
+      <div class="mark">double-entry · since today</div>
+    </aside>
+
+    <header>
+      <h1 class="title">The <em>Ledger</em></h1>
+      <div class="meta">
+        <span class="dot" title="agent online"></span>
+        <span id="status">at the desk</span>
+        <button class="reset" id="resetBtn" title="Forget current session and start a new conversation">Reset</button>
+      </div>
+    </header>
+
+    <main class="log" id="log" aria-live="polite"></main>
+
+    <form class="composer" id="composer" autocomplete="off">
+      <label class="field">
+        <span class="tag">entry</span>
+        <div class="attachments" id="attachments"></div>
+        <textarea id="input" rows="1" placeholder="Record an expense, ask for a total, attach a receipt…&#10;⏎ to send · ⇧⏎ newline · ⌘V to paste an image"></textarea>
+      </label>
+      <div class="composer-tools">
+        <button type="button" class="clip-btn" id="clipBtn" title="Attach receipt(s)">¶</button>
+        <button class="send" type="submit" id="sendBtn">
+          Inscribe
+          <span class="kbd">⏎</span>
+        </button>
+      </div>
+      <input type="file" id="fileInput" multiple accept="image/*,application/pdf" hidden />
+      <div class="footnote">drafted by <span>pi</span> · stored locally in <span>agent-home/memory</span></div>
+    </form>
+  </div>
+
+<script>
+(() => {
+  const log = document.getElementById('log');
+  const form = document.getElementById('composer');
+  const input = document.getElementById('input');
+  const sendBtn = document.getElementById('sendBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const statusEl = document.getElementById('status');
+  const fileInput = document.getElementById('fileInput');
+  const clipBtn = document.getElementById('clipBtn');
+  const attachmentsEl = document.getElementById('attachments');
+
+  let entryNo = 0;
+  let busy = false;
+  /** @type {File[]} */
+  let pending = [];
+
+  const MAX_FILES = 8;
+  const MAX_BYTES = 25 * 1024 * 1024;
+
+  function renderChips() {
+    attachmentsEl.innerHTML = '';
+    pending.forEach((f, idx) => {
+      const chip = document.createElement('div');
+      chip.className = 'chip';
+      const isImg = f.type.startsWith('image/');
+      if (isImg) {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(f);
+        img.onload = () => URL.revokeObjectURL(img.src);
+        chip.appendChild(img);
+      } else {
+        const ico = document.createElement('div');
+        ico.className = 'icon';
+        ico.textContent = f.name.split('.').pop()?.toUpperCase().slice(0,3) || '¶';
+        chip.appendChild(ico);
+      }
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = f.name;
+      chip.appendChild(name);
+      const x = document.createElement('button');
+      x.type = 'button';
+      x.className = 'x';
+      x.textContent = '×';
+      x.title = 'Remove';
+      x.addEventListener('click', () => { pending.splice(idx, 1); renderChips(); });
+      chip.appendChild(x);
+      attachmentsEl.appendChild(chip);
+    });
+  }
+
+  function addFiles(list) {
+    for (const f of list) {
+      if (pending.length >= MAX_FILES) { addSystem(`Only ${MAX_FILES} attachments per message.`); break; }
+      if (f.size > MAX_BYTES) { addSystem(`Skipped ${f.name}: over 25MB.`); continue; }
+      pending.push(f);
+    }
+    renderChips();
+  }
+
+  const romanize = (n) => {
+    const m = [
+      [1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],
+      [100,'C'],[90,'XC'],[50,'L'],[40,'XL'],
+      [10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']
+    ];
+    let r = '';
+    for (const [v,s] of m) { while (n >= v) { r += s; n -= v; } }
+    return r || '—';
+  };
+
+  const fmtTime = () => {
+    const d = new Date();
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  function addEntry(role, initialText = '') {
+    entryNo += 1;
+    const el = document.createElement('article');
+    el.className = `entry ${role}`;
+    el.innerHTML = `
+      <div class="gutter">
+        <span class="n">${romanize(entryNo)}</span>
+        ${role === 'user' ? 'you' : role === 'assistant' ? 'agent' : 'note'}<br/>
+        ${fmtTime()}
+      </div>
+      <div class="body"></div>
+    `;
+    const body = el.querySelector('.body');
+    if (initialText) body.textContent = initialText;
+    log.appendChild(el);
+    log.scrollTop = log.scrollHeight;
+    return body;
+  }
+
+  function addSystem(text) {
+    const body = addEntry('system', text);
+    return body;
+  }
+
+  function addTool(parent, name) {
+    const t = document.createElement('div');
+    t.className = 'tool';
+    t.innerHTML = `<span class="name">${name}</span> · consulting…`;
+    parent.appendChild(t);
+    log.scrollTop = log.scrollHeight;
+    return t;
+  }
+
+  function addError(parent, msg) {
+    const e = document.createElement('div');
+    e.className = 'err';
+    e.textContent = msg;
+    parent.appendChild(e);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function setBusy(b) {
+    busy = b;
+    sendBtn.disabled = b;
+    statusEl.textContent = b ? 'thinking…' : 'at the desk';
+  }
+
+  function autoresize() {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 220) + 'px';
+  }
+  input.addEventListener('input', autoresize);
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      form.requestSubmit();
+    }
+  });
+
+  function renderUserThumbs(parent, files) {
+    if (!files.length) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'msg-thumbs';
+    for (const f of files) {
+      if (f.type.startsWith('image/')) {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(f);
+        img.onload = () => URL.revokeObjectURL(img.src);
+        img.alt = f.name;
+        wrap.appendChild(img);
+      } else {
+        const d = document.createElement('div');
+        d.className = 'file';
+        d.textContent = f.name;
+        wrap.appendChild(d);
+      }
+    }
+    parent.appendChild(wrap);
+  }
+
+  async function send(message, files) {
+    const userBody = addEntry('user', message || '(attached receipts)');
+    renderUserThumbs(userBody, files);
+    const body = addEntry('assistant');
+    body.classList.add('caret');
+    let acc = '';
+    const activeTools = new Map();
+
+    setBusy(true);
+    try {
+      let resp;
+      if (files.length > 0) {
+        const fd = new FormData();
+        if (message) fd.append('message', message);
+        for (const f of files) fd.append('attachments', f, f.name);
+        resp = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Accept': 'text/event-stream' },
+          body: fd,
+        });
+      } else {
+        resp = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
+          body: JSON.stringify({ message }),
+        });
+      }
+      if (!resp.ok || !resp.body) {
+        addError(body.parentElement, `Request failed (${resp.status})`);
+        body.classList.remove('caret');
+        return;
+      }
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+
+      const handle = (event, data) => {
+        let payload = {};
+        try { payload = data ? JSON.parse(data) : {}; } catch {}
+        switch (event) {
+          case 'delta':
+            acc += payload.text || '';
+            body.textContent = acc;
+            log.scrollTop = log.scrollHeight;
+            break;
+          case 'tool_start': {
+            const t = addTool(body.parentElement, payload.name || 'tool');
+            activeTools.set(payload.name, t);
+            break;
+          }
+          case 'tool_end': {
+            const t = activeTools.get(payload.name);
+            if (t) {
+              t.classList.add('done');
+              t.innerHTML = `<span class="name">${payload.name}</span> · noted`;
+              activeTools.delete(payload.name);
+            }
+            break;
+          }
+          case 'turn_end':
+            break;
+          case 'error':
+            addError(body.parentElement, payload.message || 'unknown error');
+            break;
+          case 'done':
+            body.classList.remove('caret');
+            break;
+        }
+      };
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        let sep;
+        while ((sep = buf.indexOf('\n\n')) !== -1) {
+          const block = buf.slice(0, sep);
+          buf = buf.slice(sep + 2);
+          let event = 'message', data = '';
+          for (const line of block.split('\n')) {
+            if (line.startsWith('event:')) event = line.slice(6).trim();
+            else if (line.startsWith('data:')) data += line.slice(5).trim();
+          }
+          handle(event, data);
+        }
+      }
+    } catch (err) {
+      addError(body.parentElement, err.message || String(err));
+    } finally {
+      body.classList.remove('caret');
+      setBusy(false);
+      input.focus();
+    }
+  }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (busy) return;
+    const msg = input.value.trim();
+    const files = pending.slice();
+    if (!msg && files.length === 0) return;
+    input.value = '';
+    pending = [];
+    renderChips();
+    autoresize();
+    send(msg, files);
+  });
+
+  clipBtn.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => {
+    addFiles(fileInput.files || []);
+    fileInput.value = '';
+  });
+
+  // Drag & drop on the composer
+  ['dragenter','dragover'].forEach(ev =>
+    form.addEventListener(ev, (e) => { e.preventDefault(); form.classList.add('dragover'); }));
+  ['dragleave','drop'].forEach(ev =>
+    form.addEventListener(ev, (e) => {
+      if (ev === 'dragleave' && form.contains(e.relatedTarget)) return;
+      form.classList.remove('dragover');
+    }));
+  form.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (e.dataTransfer?.files?.length) addFiles(e.dataTransfer.files);
+  });
+
+  // Paste image from clipboard
+  input.addEventListener('paste', (e) => {
+    const items = e.clipboardData?.items || [];
+    const files = [];
+    for (const it of items) {
+      if (it.kind === 'file') {
+        const f = it.getAsFile();
+        if (f) files.push(f);
+      }
+    }
+    if (files.length) {
+      e.preventDefault();
+      addFiles(files);
+    }
+  });
+
+  resetBtn.addEventListener('click', async () => {
+    if (busy) return;
+    if (!confirm('Close the current ledger session and begin a new one?')) return;
+    try {
+      await fetch('/api/reset', { method: 'POST' });
+      addSystem('— a new page is turned. previous session retired. —');
+      entryNo = 0;
+    } catch (err) {
+      addSystem('failed to reset: ' + (err.message || err));
+    }
+  });
+
+  // Welcome
+  addSystem('The desk is set. Tell me about an expense, or ask what we know.');
+  input.focus();
+})();
+</script>
+</body>
+</html>

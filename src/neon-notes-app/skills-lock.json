@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "skills": {
+    "neon": {
+      "source": "neondatabase/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/neon/SKILL.md",
+      "computedHash": "07ebeb0077c3a10fd82a87ee45a75f0c071bf118b95ea61da90907c8fc05a2f4"
+    },
+    "neon-ai-gateway": {
+      "source": "neondatabase/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/neon-ai-gateway/SKILL.md",
+      "computedHash": "0edcef859ae35a6f0b1063395f56afb385b9e43999dcd1816f4075055858790a"
+    },
+    "neon-auth": {
+      "source": "neondatabase/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/neon-auth/SKILL.md",
+      "computedHash": "5459d47c3fc325e09cb73641b15c48e5bc3e5d82a2059ba6ea8769bd73ff25e1"
+    },
+    "neon-functions": {
+      "source": "neondatabase/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/neon-functions/SKILL.md",
+      "computedHash": "d1a5482a8e822164392d14aca55f3e6a95cf83dd61d417d7a05609514bfe4feb"
+    },
+    "neon-object-storage": {
+      "source": "neondatabase/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/neon-object-storage/SKILL.md",
+      "computedHash": "be0c3d0c362e51dadc4146e04e1067db30c81cd21c45517b511523a14e6ed19a"
+    },
+    "neon-postgres": {
+      "source": "neondatabase/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/neon-postgres/SKILL.md",
+      "computedHash": "b9763d379a3c5039e5555540a1333b1c529e2365d4f0b8fe2998ba41509814c5"
+    },
+    "neon-postgres-branches": {
+      "source": "neondatabase/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/neon-postgres-branches/SKILL.md",
+      "computedHash": "d6b7ecfc52508c57bd3c8572a7cd0c582c256e36731124eb8598e8b24780ab1d"
+    },
+    "neon-postgres-egress-optimizer": {
+      "source": "neondatabase/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/neon-postgres-egress-optimizer/SKILL.md",
+      "computedHash": "9f991d785e63e9ae33e1a09db18ab8d559083861c70aebc6a740df01ca5bf214"
+    }
+  }
+}

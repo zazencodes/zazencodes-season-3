@@ -1,0 +1,22 @@
+[
+  {
+    "source": "https://journals.plos.org/plosone/article/figure/image?download=&id=10.1371/journal.pone.0304756.g001&size=large",
+    "output_path": "literature_review_assets/images/01_central_america_corridor_map.png",
+    "caption": "Regional study area showing lowland protected areas and high-elevation target areas used to map potential climate adaptation corridors across Central America.",
+    "credit": "McCullough et al. 2024, PLOS ONE",
+    "section": "Main Findings",
+    "placement": "htbp",
+    "width": "0.92\\linewidth",
+    "label": "fig:corridor-map"
+  },
+  {
+    "source": "https://journals.plos.org/plosone/article/figure/image?download=&id=10.1371/journal.pone.0304756.g003&size=large",
+    "output_path": "literature_review_assets/images/02_central_america_corridor_characteristics.png",
+    "caption": "Ecological characteristics and protection status of potential climate adaptation corridors by country, illustrating how corridor quality and protection vary across the hotspot region.",
+    "credit": "McCullough et al. 2024, PLOS ONE",
+    "section": "Main Findings",
+    "placement": "htbp",
+    "width": "0.92\\linewidth",
+    "label": "fig:corridor-characteristics"
+  }
+]

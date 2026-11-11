@@ -1,0 +1,19 @@
+{
+  "name": "kanban-board",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server",
+    "cli"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n server,client -c blue,green \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w client && npm run build -w server && npm run build -w cli",
+    "start": "npm run start -w server",
+    "kanban": "npm run -w cli start --"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

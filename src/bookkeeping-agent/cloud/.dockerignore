@@ -1,0 +1,12 @@
+node_modules
+.git
+.env
+.DS_Store
+agent-home/sessions
+agent-home/.current-session-id
+agent-home/.pi-cache
+agent-home/memory/expenses.json
+agent-home/memory/facts.json
+agent-home/memory/images/*
+!agent-home/memory/images/.gitkeep
+docs

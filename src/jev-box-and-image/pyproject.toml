@@ -1,0 +1,13 @@
+[project]
+name = "jev-box-and-image"
+version = "0.1.0"
+description = "Jev by TypeSafe AI with images: Noul, Choice and Score on pictures, plus the new Box question."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "typesafe-sdk[pil]>=0.7.5",
+    "python-dotenv>=1.0.0",
+    "ipykernel>=6.29.0",
+    "httpx>=0.28.1",
+    "beautifulsoup4>=4.15.0",
+]

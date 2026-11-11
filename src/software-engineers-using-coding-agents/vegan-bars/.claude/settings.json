@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILEPATH=$(jq -r '.tool_input.file_path'); if echo \"$FILEPATH\" | grep -qE \"\\.env$\"; then echo '{\"decision\": \"block\", \"reason\": \"Reading .env files is not allowed.\"}'; fi",
+            "statusMessage": "Checking file access..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath' | { read -r f; echo \"$f\" | grep -q '\\.html$' && npx prettier --write \"$f\"; } 2>/dev/null || true",
+            "statusMessage": "Formatting HTML..."
+          }
+        ]
+      }
+    ]
+  }
+}

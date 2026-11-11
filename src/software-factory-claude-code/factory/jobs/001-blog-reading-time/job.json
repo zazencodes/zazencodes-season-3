@@ -1,0 +1,5 @@
+{ "id": "001-blog-reading-time", "feature": "Show an estimated reading time next to the date on blog post pages and blog list cards",
+  "branch": "factory/001-blog-reading-time",
+  "worktree": "/Users/alex/pro/zazencodes.com-vuefire-factory/001-blog-reading-time",
+  "stage": "merged", "round": 1,
+  "reviews": { "security": "PASS", "ux": "PASS", "ui": "PASS", "code": "PASS" } }

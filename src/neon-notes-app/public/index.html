@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notes Chat</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --panel: #ffffff; --ink: #1d1c1a; --muted: #79756c;
+    --line: #e7e4dc; --accent: #2f6f5e; --accent-ink: #ffffff;
+    --user: #2f6f5e; --bot: #efece4; --danger: #b3412f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141513; --panel: #1c1d1a; --ink: #ecebe6; --muted: #8d8b82;
+      --line: #2b2c28; --accent: #5fb89f; --accent-ink: #10201a;
+      --user: #2f6f5e; --bot: #262722; --danger: #e0806e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; height: 100vh; display: grid; grid-template-columns: 340px 1fr 280px;
+    background: var(--bg); color: var(--ink);
+    font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  aside { background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+  h1 { font-size: 15px; letter-spacing: .02em; margin: 0; padding: 20px 20px 4px; }
+  .sub { color: var(--muted); font-size: 13px; padding: 0 20px 16px; }
+  form.note { padding: 0 20px 16px; display: grid; gap: 8px; border-bottom: 1px solid var(--line); }
+  input, textarea {
+    width: 100%; font: inherit; color: inherit; background: var(--bg);
+    border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; resize: vertical;
+  }
+  input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  button {
+    font: inherit; cursor: pointer; border: 0; border-radius: 10px; padding: 9px 14px;
+    background: var(--accent); color: var(--accent-ink); font-weight: 600;
+  }
+  button:disabled { opacity: .5; cursor: default; }
+  #notes { list-style: none; margin: 0; padding: 8px 12px 20px; overflow-y: auto; flex: 1; }
+  #notes li { padding: 12px 10px; border-radius: 10px; }
+  #notes li:hover { background: var(--bg); }
+  #notes .row { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  #notes strong { font-weight: 600; }
+  #notes p { margin: 2px 0 0; color: var(--muted); font-size: 13px; white-space: pre-wrap; }
+  #notes .del { background: none; color: var(--muted); padding: 0 4px; font-weight: 400; opacity: 0; }
+  #notes li:hover .del { opacity: 1; }
+  #notes .del:hover { color: var(--danger); }
+  .files { display: grid; gap: 6px; margin-top: 8px; }
+  .file { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; }
+  .file a { color: var(--accent); text-decoration: none; }
+  .file img { display: block; max-width: 100%; max-height: 140px; border-radius: 8px; border: 1px solid var(--line); }
+  .file .del { opacity: 0; background: none; color: var(--muted); padding: 0 4px; font-weight: 400; }
+  .file:hover .del { opacity: 1; }
+  .attach { display: inline-block; margin-top: 6px; font-size: 12px; color: var(--muted); cursor: pointer; }
+  .attach:hover { color: var(--accent); }
+  .empty { color: var(--muted); padding: 16px 10px; font-size: 14px; }
+  main { display: flex; flex-direction: column; min-height: 0; }
+  #log { flex: 1; overflow-y: auto; padding: 32px max(24px, calc((100% - 720px) / 2)); display: flex; flex-direction: column; gap: 14px; }
+  .msg { max-width: 82%; padding: 10px 14px; border-radius: 16px; white-space: pre-wrap; }
+  .msg.user { align-self: flex-end; background: var(--user); color: #fff; border-bottom-right-radius: 4px; }
+  .msg.bot { align-self: flex-start; background: var(--bot); border-bottom-left-radius: 4px; }
+  .msg.error { color: var(--danger); }
+  .hint { margin: auto; text-align: center; color: var(--muted); }
+  .hint h2 { color: var(--ink); font-size: 22px; margin: 0 0 6px; }
+  form.chat { display: flex; gap: 10px; padding: 16px max(24px, calc((100% - 720px) / 2)) 28px; }
+  form.chat input { border-radius: 999px; padding: 12px 18px; background: var(--panel); }
+  form.chat button { border-radius: 999px; padding: 0 22px; }
+  aside.chats { border-right: 0; border-left: 1px solid var(--line); }
+  aside.chats .top { display: flex; justify-content: space-between; align-items: center; padding-right: 20px; }
+  aside.chats .top button { padding: 5px 12px; font-size: 13px; }
+  #chats { list-style: none; margin: 0; padding: 8px 12px 20px; overflow-y: auto; flex: 1; }
+  #chats li { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; padding: 10px; border-radius: 10px; cursor: pointer; }
+  #chats li:hover { background: var(--bg); }
+  #chats li.active { background: var(--bot); }
+  #chats .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #chats .when { display: block; color: var(--muted); font-size: 12px; }
+  #chats .del { background: none; color: var(--muted); padding: 0 4px; font-weight: 400; opacity: 0; }
+  #chats li:hover .del { opacity: 1; }
+  #chats .del:hover { color: var(--danger); }
+  [hidden] { display: none !important; }
+  #login { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; z-index: 10; }
+  #login form { width: min(360px, calc(100vw - 48px)); background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 28px; display: grid; gap: 12px; }
+  #login h2 { margin: 0; font-size: 20px; }
+  #login p { margin: 0 0 4px; color: var(--muted); font-size: 14px; }
+  #login-error { color: var(--danger); font-size: 13px; min-height: 18px; }
+  .account { border-top: 1px solid var(--line); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+  .account span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .account button { background: none; color: var(--muted); border: 1px solid var(--line); padding: 4px 10px; font-weight: 400; }
+  @media (max-width: 900px) {
+    body { grid-template-columns: 1fr; grid-template-rows: 30% 1fr 25%; }
+    aside { border-right: 0; border-bottom: 1px solid var(--line); }
+    aside.chats { border-left: 0; border-bottom: 0; border-top: 1px solid var(--line); }
+  }
+</style>
+</head>
+<body>
+<aside>
+  <h1>Notes</h1>
+  <div class="sub">Stored in Postgres</div>
+  <form class="note" id="note-form">
+    <input name="title" placeholder="Title" required>
+    <textarea name="body" rows="2" placeholder="Write something…"></textarea>
+    <input type="file" name="files" multiple>
+    <button>Add note</button>
+  </form>
+  <ul id="notes"></ul>
+</aside>
+<main>
+  <div id="log"><div class="hint"><h2>Chat with your notes</h2>Ask anything about what you've written.</div></div>
+  <form class="chat" id="chat-form">
+    <input name="q" placeholder="Ask about your notes…" autocomplete="off" required>
+    <button>Send</button>
+  </form>
+</main>
+<aside class="chats">
+  <div class="top"><h1>Chats</h1><button id="new-chat" type="button">New chat</button></div>
+  <div class="sub">Saved in Postgres</div>
+  <ul id="chats"></ul>
+  <div class="account"><span id="who"></span><button id="signout" type="button">Sign out</button></div>
+</aside>
+<div id="login" hidden>
+  <form id="login-form">
+    <h2>Sign in</h2>
+    <p>to chat with your notes</p>
+    <input name="email" type="email" placeholder="Email" autocomplete="username" required>
+    <input name="password" type="password" placeholder="Password" autocomplete="current-password" required>
+    <div id="login-error"></div>
+    <button>Sign in</button>
+  </form>
+</div>
+<script type="module">
+import { createAuthClient } from "./auth.js";
+
+const $ = (s) => document.querySelector(s);
+const notesEl = $("#notes"), log = $("#log");
+
+let authClient;
+const loginEl = $("#login");
+
+// Every request carries a fresh Neon Auth JWT (they expire after 15 minutes).
+// token() throws "Unauthorized" when there is no session; any other error is a real failure.
+async function getToken() {
+  try {
+    const { data } = await authClient.token();
+    return data?.token ?? null;
+  } catch (err) {
+    if (err.message === "Unauthorized") return null;
+    throw err;
+  }
+}
+
+async function request(url, opts = {}) {
+  const token = await getToken();
+  if (!token) { loginEl.hidden = false; throw new Error("Please sign in."); }
+  const res = await fetch(url, { ...opts, headers: { ...opts.headers, authorization: "Bearer " + token } });
+  if (res.status === 401) {
+    const message = `${new URL(url, location.href).host} rejected your session. Please sign in again.`;
+    loginEl.hidden = false; $("#login-error").textContent = message;
+    throw new Error(message);
+  }
+  if (!res.ok) throw new Error((await res.json()).error ?? res.statusText);
+  return res;
+}
+
+async function api(path, opts) {
+  const res = await request(path, opts);
+  return res.status === 204 ? null : res.json();
+}
+
+async function loadNotes() {
+  const notes = await api("/api/notes");
+  notesEl.replaceChildren();
+  if (!notes.length) { notesEl.innerHTML = '<div class="empty">No notes yet.</div>'; return; }
+  for (const n of notes) {
+    const li = document.createElement("li");
+    const row = document.createElement("div"); row.className = "row";
+    const t = document.createElement("strong"); t.textContent = n.title;
+    const d = document.createElement("button"); d.className = "del"; d.textContent = "✕"; d.title = "Delete";
+    d.onclick = async () => { await api(`/api/notes/${n.id}`, { method: "DELETE" }); loadNotes(); };
+    row.append(t, d); li.append(row);
+    if (n.body) { const p = document.createElement("p"); p.textContent = n.body; li.append(p); }
+    if (n.attachments.length) {
+      const box = document.createElement("div"); box.className = "files";
+      for (const a of n.attachments) {
+        const item = document.createElement("div"); item.className = "file";
+        const link = document.createElement("a");
+        link.href = (await api(`/api/attachments/${a.id}`)).url; link.target = "_blank";
+        if (a.content_type.startsWith("image/")) {
+          const img = document.createElement("img"); img.src = link.href; img.alt = a.filename; link.append(img);
+        } else { link.textContent = "📎 " + a.filename; }
+        const x = document.createElement("button"); x.className = "del"; x.textContent = "✕"; x.title = "Remove attachment";
+        x.onclick = async () => { await api(`/api/attachments/${a.id}`, { method: "DELETE" }); loadNotes(); };
+        item.append(link, x); box.append(item);
+      }
+      li.append(box);
+    }
+    const label = document.createElement("label"); label.className = "attach"; label.textContent = "+ Attach file";
+    const input = document.createElement("input"); input.type = "file"; input.hidden = true;
+    input.onchange = async () => {
+      const body = new FormData(); body.append("file", input.files[0]);
+      await api(`/api/notes/${n.id}/attachments`, { method: "POST", body }); loadNotes();
+    };
+    label.append(input); li.append(label);
+    notesEl.append(li);
+  }
+}
+
+$("#note-form").onsubmit = async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const note = await api("/api/notes", { method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ title: f.title.value, body: f.body.value }) });
+  for (const file of f.files.files) {
+    const body = new FormData(); body.append("file", file);
+    await api(`/api/notes/${note.id}/attachments`, { method: "POST", body });
+  }
+  f.reset(); loadNotes();
+};
+
+function addMsg(text, cls) {
+  log.querySelector(".hint")?.remove();
+  const m = document.createElement("div"); m.className = "msg " + cls; m.textContent = text;
+  log.append(m); log.scrollTop = log.scrollHeight;
+  return m;
+}
+
+const CHAT_URL = "http://localhost:8790";
+const HINT = '<div class="hint"><h2>Chat with your notes</h2>Ask anything about what you\'ve written.</div>';
+const chatsEl = $("#chats");
+let chatId = null;
+
+async function chatApi(path, opts) {
+  const res = await request(CHAT_URL + path, opts);
+  return res.status === 204 ? null : res.json();
+}
+
+async function loadChats() {
+  const chats = await chatApi("/chats");
+  chatsEl.replaceChildren();
+  if (!chats.length) { chatsEl.innerHTML = '<div class="empty">No chats yet.</div>'; return; }
+  for (const c of chats) {
+    const li = document.createElement("li");
+    if (c.id === chatId) li.className = "active";
+    const text = document.createElement("div"); text.style.minWidth = 0;
+    const title = document.createElement("span"); title.className = "title"; title.textContent = c.title;
+    title.style.display = "block";
+    const when = document.createElement("span"); when.className = "when";
+    when.textContent = new Date(c.updated_at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+    text.append(title, when);
+    const d = document.createElement("button"); d.className = "del"; d.textContent = "✕"; d.title = "Delete chat";
+    d.onclick = async (e) => {
+      e.stopPropagation();
+      await chatApi(`/chats/${c.id}`, { method: "DELETE" });
+      if (c.id === chatId) newChat();
+      loadChats();
+    };
+    li.onclick = () => openChat(c.id);
+    li.append(text, d); chatsEl.append(li);
+  }
+}
+
+function newChat() {
+  chatId = null; log.innerHTML = HINT;
+  for (const li of chatsEl.children) li.classList.remove("active");
+}
+
+async function openChat(id) {
+  const messages = await chatApi(`/chats/${id}`);
+  chatId = id; log.replaceChildren();
+  for (const m of messages) addMsg(m.content, m.role === "user" ? "user" : "bot");
+  loadChats();
+}
+
+$("#new-chat").onclick = newChat;
+
+$("#chat-form").onsubmit = async (e) => {
+  e.preventDefault();
+  const form = e.target, q = form.q.value; form.reset();
+  form.querySelector("button").disabled = true;
+  addMsg(q, "user");
+  const bubble = addMsg("…", "bot");
+  try {
+    const res = await request(CHAT_URL + "/", { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ chatId, message: q }) });
+    const savedId = res.headers.get("X-Chat-Id");
+    const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+    let answer = "";
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      answer += value; bubble.textContent = answer; log.scrollTop = log.scrollHeight;
+    }
+    if (!answer) throw new Error("The model returned an empty response.");
+    chatId = savedId;
+    await loadChats();
+  } catch (err) {
+    bubble.textContent = err.message; bubble.classList.add("error");
+  } finally { form.querySelector("button").disabled = false; }
+};
+
+$("#login-form").onsubmit = async (e) => {
+  e.preventDefault();
+  const f = e.target, errEl = $("#login-error"); errEl.textContent = "";
+  try {
+    await authClient.signIn.email({ email: f.email.value, password: f.password.value });
+  } catch (err) {
+    errEl.textContent = err.message || "Sign in failed."; return;
+  }
+  try {
+    if (await start()) f.reset();
+    else errEl.textContent = "Signed in, but the browser did not keep the session. Third-party cookies from the Neon Auth domain may be blocked.";
+  } catch (err) {
+    errEl.textContent = err.message;
+  }
+};
+
+$("#signout").onclick = async () => { await authClient.signOut(); location.reload(); };
+
+// Only token() is used to check the session: once getSession() has been called,
+// the SDK's token() returns the session object instead of { token }.
+async function start() {
+  const token = await getToken();
+  if (!token) { loginEl.hidden = false; return false; }
+  const claims = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+  loginEl.hidden = true; $("#who").textContent = claims.email;
+  newChat();
+  await Promise.all([
+    loadNotes().catch((err) => { notesEl.innerHTML = `<div class="empty">${err.message}</div>`; }),
+    loadChats().catch((err) => { chatsEl.innerHTML = `<div class="empty">${err.message}</div>`; }),
+  ]);
+  return true;
+}
+
+const { authUrl } = await (await fetch("/api/config")).json();
+authClient = createAuthClient(authUrl);
+try { await start(); } catch (err) { loginEl.hidden = false; $("#login-error").textContent = err.message; }
+</script>
+</body>
+</html>
