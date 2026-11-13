@@ -38,3 +38,7 @@ These are the Season 3 source folders currently in this repo. The published vide
 | [Google AI Studio + Firebase: Build & Deploy a Full-Stack App](https://youtu.be/30iQsttzBps) | [![Google AI Studio + Firebase: Build & Deploy a Full-Stack App](assets/thumbnails/google-ai-studio-firebase.png)](https://youtu.be/30iQsttzBps) | [`src/google-ai-studio-firebase`](src/google-ai-studio-firebase) |
 | [The best way to create agent skills in 2026](https://youtu.be/XCOkCwgKwAA) | [![The best way to create agent skills in 2026](assets/thumbnails/dry-run-workflow-for-agent-skills.png)](https://youtu.be/XCOkCwgKwAA) | [`src/dry-run-workflow-for-agent-skills`](src/dry-run-workflow-for-agent-skills) |
 | [Stop using AGENTS.md and CLAUDE.md (do this instead)](https://youtu.be/myCRW_u6U2U) | [![Stop using AGENTS.md and CLAUDE.md](assets/thumbnails/agent-md-effectiveness.png)](https://youtu.be/myCRW_u6U2U) | [`src/agent-md-effectiveness`](src/agent-md-effectiveness) |
+
+## License
+
+Licensed under the [GNU General Public License v3.0](LICENSE).
