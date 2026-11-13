@@ -1,6 +1,6 @@
 ---
 name: factory
-description: Software factory: turn GitHub issues into pull requests
+description: "Software factory: turn GitHub issues into pull requests"
 metadata:
   hermes:
     tags: [github, coding, automation]
@@ -20,9 +20,10 @@ ingest -> spec -> build -> validate -> pr
 | Command | What it does |
 | --- | --- |
 | `/factory add OWNER/REPO` | Finds the repository's clone or clones it, checks push access and registers it |
-| `/factory run OWNER/REPO` | Builds the oldest `factory` issue into a pull request |
+| `/factory run OWNER/REPO` | Drains the queued issues, each in a fresh worker session |
 | `/factory monitor` | Shows what the factory is doing |
 | `/factory stop [OWNER/REPO]` | Stops the job in progress |
+| `/factory resume OWNER/REPO ISSUE` | Picks a stopped job back up where it left off |
 
 The words after `/factory` choose the section below. In a scheduled run, the
 prompt is `/factory run OWNER/REPO`.
@@ -52,7 +53,66 @@ If it finds more than one clone, show them to the user and ask which to use,
 then run it again with `--path <clone>`. Report where the clone is and that
 labeling an issue `factory` queues it.
 
+## Schedule recurring runs
+
+A scheduled factory is a Hermes cron job that runs the dispatcher script
+directly, with no agent of its own. The dispatcher starts a fresh worker
+session for each queued issue.
+
+1. Resolve the actual `OWNER/REPO` before installing or scheduling. Ask when
+   the request still contains a placeholder; never treat an example repository
+   as the user's choice.
+2. Run `factory.py install-precheck OWNER/REPO --dispatch`. Use the exact
+   script filename it prints; do not hand-write a substitute. Stop and report
+   any script error.
+3. Load the Hermes scheduling guidance and describe `cronjob_manage`. List
+   existing jobs before creating one so a repeated setup does not duplicate
+   it. Set explicitly:
+   - name: `factory OWNER/REPO`
+   - schedule: the requested interval, e.g. `every 10m`
+   - skills: `["factory"]`
+   - prompt: `/factory run OWNER/REPO`
+   - script: the filename printed by `install-precheck`
+   - no_agent: `true`. The script creates the worker sessions itself; the
+     scheduler must not start a coordinator agent.
+   - deliver: `local` when requested
+   Substitute the actual repository in every field. Leave repeat unlimited for
+   an ongoing interval unless the user requests a run limit.
+4. Read back the saved job and report its ID, settings, enabled state and next
+   run with timezone. Distinguish a scheduled job from an already executed run.
+
+A scheduled batch is bounded by Hermes' cron script timeout (one hour by
+default); don't promise unlimited batch runtime. Workers use the CLI/profile
+model settings, not a model pinned on the cron job.
+
+The generated script in `$HERMES_HOME/scripts/` is a small wrapper: it sets
+`sys.argv` to `factory.py dispatch OWNER/REPO` and runs the installed
+`factory.py` with `runpy.run_path`. It depends on that script's absolute path
+and isn't standalone. When asked to show it, give its path and exact contents.
+
 ## run
+
+`/factory run OWNER/REPO` is a dispatcher: run `factory.py dispatch OWNER/REPO`.
+It snapshots every eligible queued issue, oldest first, and for each one
+claims the issue (`start`) and launches a separate
+`hermes chat --oneshot --skills factory` worker session, one after another.
+Each worker's output goes to `worker-output.log` in its job folder. A lock
+stops two dispatchers overlapping on one repository. Issues filed during a
+batch wait for the next run. A ready or draft PR lets the next worker start; a
+failed, stopped or incomplete worker halts the batch so its work is kept.
+Never run two workers against the same clone at once.
+
+Don't pass a custom `--source` to worker sessions: the Hermes gateway rejects
+custom source tags with a misleading model-connection `invalid_params` error.
+Verify any change to the launcher with a real model request using the same
+flags, environment and working directory; mocked process tests can't validate
+the gateway handshake.
+
+A worker's prompt says its issue was already started at ingest. A worker
+MUST NOT call `dispatch` or `start`; it reads the recorded job and carries
+out the steps below from the rest of Ingest through PR, then ends. A recovery
+prompt likewise continues the named stopped issue instead of dispatching a new
+batch.
 
 Running `/factory run` is the user's request to create a `factory/issue-<n>`
 branch, commit to it, push it and open a pull request, even in a repository
@@ -107,7 +167,7 @@ monitor shows these lines.
    If you made no change worth reviewing, run
    `factory.py stop OWNER/REPO --reason "<why>"` instead.
 6. Finish with two or three lines: the issue, the pull request link, ready or
-   draft, and what's left.
+   draft, and what's left. The dispatcher then starts the next worker.
 
 ## monitor
 
@@ -121,6 +181,23 @@ code block. Below it, add one or two sentences:
 The monitor only reads the factory's records, so it works from any chat while
 a scheduled run builds in the background. It doesn't call GitHub, so the queue
 is as fresh as the factory's last check.
+
+## resume
+
+A stopped job is left out of the queue. When the user asks to recover it and
+its blocker is fixed, run `factory.py resume OWNER/REPO ISSUE_NUMBER`. It keeps
+the branch, uncommitted changes, stage and history, and refuses when another
+job is active or the clone is on the wrong branch. Continue the saved spec
+from that stage; don't call `start`. All bookkeeping still goes through
+`factory.py`.
+
+Tell GitHub authentication (`gh auth status`, a non-interactive push dry run)
+apart from commit authorship (`git var GIT_AUTHOR_IDENT` and
+`GIT_COMMITTER_IDENT`). A missing `user.name` or `user.email` is an identity
+failure, not a token failure. When the user authorizes it, set the identity
+from the authenticated GitHub account with `git config --global` for the
+runtime HOME, run `gh auth setup-git`, and verify before retrying. Never
+invent an email or put credentials in prompts.
 
 ## stop
 

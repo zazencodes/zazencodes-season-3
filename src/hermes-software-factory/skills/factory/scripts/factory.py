@@ -220,6 +220,9 @@ def start(args):
     if not waiting:
         print(f"NO WORK: {slug} has no open issues labeled '{LABEL}'.")
         return
+    requested = getattr(args, "issue", None)
+    if requested is not None and waiting[0]["number"] != requested:
+        raise SystemExit(f"Queue changed: expected issue #{requested}; inspect before continuing.")
     number = waiting[0]["number"]
     issue = json.loads(run("gh", "issue", "view", str(number), "--repo", slug,
                            "--json", "number,title,body,url,author"))
@@ -293,6 +296,84 @@ def open_pr(args):
     print(f"{'Draft pull request' if args.draft else 'Pull request'} for #{job['issue']}: {url}")
 
 
+# ---------------------------------------------------------------- dispatcher
+
+def dispatch(args):
+    """Drain a queue snapshot with one fresh process/session per issue."""
+    import fcntl
+    slug = check_slug(args.repo)
+    lock_path = state_dir() / f"{key(slug)}.dispatch.lock"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with lock_path.open("a") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            print(f"BUSY: dispatcher already running for {slug}.")
+            return
+        repo = load_repo(slug)
+        if active_job(slug):
+            print(f"BUSY: a factory issue is already active for {slug}.")
+            return
+        waiting = check_queue(repo)
+        if not waiting:
+            print(f"NO WORK: {slug} has no eligible issues.")
+            return
+        completed = []
+        for issue in waiting:
+            number = issue["number"]
+            start(argparse.Namespace(repo=slug, issue=number))
+            job = active_job(slug)
+            if not job or job["issue"] != number:
+                raise SystemExit(f"Could not claim #{number}; batch halted.")
+            folder = job_dir(slug, number)
+            prompt = (
+                f"Factory worker for {slug} issue #{number}. The dispatcher already ran start; "
+                f"the active job is at ingest in {folder}, clone {repo['path']}. "
+                "Do NOT run start or dispatch. Read the issue and comments, repository instructions "
+                "and README, then execute factory stages spec, build, validate and open-pr for ONLY "
+                "this issue, following the factory skill. Verify the PR on GitHub. Do not merge. "
+                "Stop on factory.py errors. End after this issue; the dispatcher handles the queue."
+            )
+            env = {k: v for k, v in os.environ.items()
+                   if not k.startswith("HERMES_SESSION_") and k not in {
+                       "HERMES_CRON_SESSION", "HERMES_UI_SESSION_ID"}}
+            with (folder / "worker-output.log").open("w") as output:
+                result = subprocess.run(
+                    ["hermes", "chat", "--oneshot", "--quiet", "--skills", "factory",
+                     "-q", prompt],
+                    cwd=repo["path"], env=env, stdin=subprocess.DEVNULL,
+                    stdout=output, stderr=subprocess.STDOUT)
+            saved = json.loads((folder / "job.json").read_text())
+            if result.returncode or saved["state"] != "done":
+                raise SystemExit(f"Worker #{number} did not complete; batch halted. See {folder}/worker-output.log")
+            completed.append(number)
+            print(f"Completed #{number}: {saved.get('pr')}", flush=True)
+        print(f"Batch complete: {len(completed)} issue(s). New arrivals wait for the next tick.")
+
+
+# ---------------------------------------------------------------- resume
+
+def resume(args):
+    """Explicit operator recovery; preserve the stopped job and its work."""
+    repo = load_repo(args.repo)
+    slug = repo["repo"]
+    if active_job(slug):
+        raise SystemExit(f"A factory job is already active for {slug}.")
+    target = job_dir(slug, args.issue) / "job.json"
+    if not target.exists():
+        raise SystemExit(f"No recorded factory job for {slug} #{args.issue}.")
+    job = json.loads(target.read_text())
+    if job["state"] != "stopped":
+        raise SystemExit("Only a stopped job can be resumed.")
+    if job["path"] != repo["path"]:
+        raise SystemExit("The recorded clone changed; inspect it before resuming.")
+    if run("git", "branch", "--show-current", cwd=job["path"]) != job["branch"]:
+        raise SystemExit(f"Check out {job['branch']} before resuming.")
+    job["state"] = "active"
+    log(job, "Resumed by operator after blocker fixed")
+    print(f"RESUMED #{job['issue']} in {slug} at {job['stage']}. Work preserved.")
+
+
 # ---------------------------------------------------------------- stop
 
 def stop(args):
@@ -333,12 +414,14 @@ def precheck(args):
 def install_precheck(args):
     """Write a cron pre-check for one repository into $HERMES_HOME/scripts, where cron requires it."""
     slug = load_repo(args.repo)["repo"]
-    target = hermes_home() / "scripts" / f"factory-precheck-{key(slug)}.py"
+    command = "dispatch" if getattr(args, "dispatch", False) else "precheck"
+    prefix = "factory-dispatch" if command == "dispatch" else "factory-precheck"
+    target = hermes_home() / "scripts" / f"{prefix}-{key(slug)}.py"
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(
-        f'"""Hermes cron pre-check: is a factory issue waiting in {slug}?"""\n'
+        f'"""Hermes cron factory {command} for {slug}."""\n'
         "import runpy\nimport sys\n\n"
-        f'sys.argv = ["factory.py", "precheck", {slug!r}]\n'
+        f'sys.argv = ["factory.py", {command!r}, {slug!r}]\n'
         f'runpy.run_path({str(Path(__file__).resolve())!r}, run_name="__main__")\n')
     print(f"Pre-check script: {target.name}")
 
@@ -450,6 +533,10 @@ def main():
     p.add_argument("--path", help="use this clone when several are found")
     p.set_defaults(func=add)
 
+    p = sub.add_parser("dispatch", help="drain queued issues using a fresh worker session for each")
+    p.add_argument("repo")
+    p.set_defaults(func=dispatch)
+
     p = sub.add_parser("start", help="pick the oldest queued issue and open its job at ingest")
     p.add_argument("repo")
     p.set_defaults(func=start)
@@ -471,6 +558,11 @@ def main():
     p.add_argument("--draft", action="store_true")
     p.set_defaults(func=open_pr)
 
+    p = sub.add_parser("resume", help="explicitly resume a stopped job without changing its work")
+    p.add_argument("repo")
+    p.add_argument("issue", type=int)
+    p.set_defaults(func=resume)
+
     p = sub.add_parser("stop", help="end the job in progress without a pull request")
     p.add_argument("repo", nargs="?")
     p.add_argument("--reason", required=True)
@@ -484,6 +576,7 @@ def main():
 
     p = sub.add_parser("install-precheck", help="write a repository's cron pre-check script")
     p.add_argument("repo")
+    p.add_argument("--dispatch", action="store_true", help="install a script-only batch dispatcher instead")
     p.set_defaults(func=install_precheck)
 
     args = parser.parse_args()
