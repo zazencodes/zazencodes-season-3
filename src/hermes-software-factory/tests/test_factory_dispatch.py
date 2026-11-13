@@ -9,7 +9,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-spec = importlib.util.spec_from_file_location('factory', Path(__file__).with_name('factory.py'))
+spec = importlib.util.spec_from_file_location('factory', Path(__file__).resolve().parents[1] / 'skills/factory/scripts/factory.py')
 factory = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(factory)
 
@@ -40,7 +40,9 @@ class DispatchTests(unittest.TestCase):
                 self.assertIn('factory', command)
                 self.assertNotIn('--resume', command)
                 self.assertNotIn('--continue', command)
-                self.assertNotIn('HERMES_SESSION_ID', kwargs['env'])
+                self.assertEqual(command[0], 'env')
+                self.assertIn('HERMES_SESSION_ID', command)
+                self.assertNotIn('env', kwargs)
                 p = factory.job_dir(slug, number) / 'job.json'
                 job = json.loads(p.read_text())
                 job['state'] = outcomes[len(calls)-1]

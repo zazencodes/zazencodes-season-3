@@ -95,7 +95,7 @@ issue first, one issue per run.
 ```text
 FACTORY_REPO = OWNER/REPO   # <- your GitHub repository, e.g. zazencodes/skills
 
-Run `/factory run FACTORY_REPO` every 10 minutes as a Hermes cron job.
+Schedule the factory for FACTORY_REPO every 10 minutes as a Hermes cron job.
 Write the real repository name into the job wherever FACTORY_REPO appears.
 First load the factory skill and run its
 `scripts/factory.py install-precheck FACTORY_REPO --dispatch`. Then create the job:
@@ -176,9 +176,9 @@ factory/
 
 - Only issues labeled `factory` run. Adding a label needs triage or write
   access to the repository.
-- The factory works on one issue per repository at a time, each in a fresh
-  Hermes session. Hermes cron also skips a tick while the previous run is
-  still going.
+- The factory works on one issue per repository at a time. On a schedule,
+  each issue gets a fresh Hermes session, and Hermes cron skips a tick while
+  the previous run is still going.
 - It pushes only `factory/issue-<n>` branches. It never force-pushes and never
   merges.
 - Each issue is built once. A stopped job keeps its branch, and the factory

@@ -7,7 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-spec = importlib.util.spec_from_file_location('factory', Path(__file__).with_name('factory.py'))
+spec = importlib.util.spec_from_file_location('factory', Path(__file__).resolve().parents[1] / 'skills/factory/scripts/factory.py')
 factory = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(factory)
 

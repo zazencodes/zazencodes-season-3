@@ -298,6 +298,23 @@ def open_pr(args):
 
 # ---------------------------------------------------------------- dispatcher
 
+# A worker must start its own session, so it doesn't inherit these from the
+# session that launched the dispatcher.
+PARENT_SESSION_VARS = (
+    "HERMES_SESSION_ID", "HERMES_SESSION_KEY", "HERMES_SESSION_TOKEN__",
+    "HERMES_SESSION_PLATFORM", "HERMES_SESSION_SOURCE",
+    "HERMES_SESSION_SOURCE_EXPLICIT", "HERMES_SESSION_PROFILE",
+    "HERMES_SESSION_CHAT_ID", "HERMES_SESSION_CHAT_NAME",
+    "HERMES_SESSION_CHAT_TYPE", "HERMES_SESSION_PARENT_CHAT_ID",
+    "HERMES_SESSION_THREAD_ID", "HERMES_SESSION_MESSAGE_ID",
+    "HERMES_SESSION_SCOPE_ID", "HERMES_SESSION_USER_ID",
+    "HERMES_SESSION_USER_ID_ALT", "HERMES_SESSION_USER_NAME",
+    "HERMES_SESSION_ASYNC_DELIVERY", "HERMES_SESSION_HISTORY_DELIVERY",
+    "HERMES_SESSION_STALL_TIMEOUT", "HERMES_CRON_SESSION",
+    "HERMES_UI_SESSION_ID",
+)
+
+
 def dispatch(args):
     """Drain a queue snapshot with one fresh process/session per issue."""
     import fcntl
@@ -334,14 +351,12 @@ def dispatch(args):
                 "this issue, following the factory skill. Verify the PR on GitHub. Do not merge. "
                 "Stop on factory.py errors. End after this issue; the dispatcher handles the queue."
             )
-            env = {k: v for k, v in os.environ.items()
-                   if not k.startswith("HERMES_SESSION_") and k not in {
-                       "HERMES_CRON_SESSION", "HERMES_UI_SESSION_ID"}}
+            unset = [arg for name in PARENT_SESSION_VARS for arg in ("-u", name)]
             with (folder / "worker-output.log").open("w") as output:
                 result = subprocess.run(
-                    ["hermes", "chat", "--oneshot", "--quiet", "--skills", "factory",
-                     "-q", prompt],
-                    cwd=repo["path"], env=env, stdin=subprocess.DEVNULL,
+                    ["env", *unset, "hermes", "chat", "--oneshot", "--quiet",
+                     "--skills", "factory", "-q", prompt],
+                    cwd=repo["path"], stdin=subprocess.DEVNULL,
                     stdout=output, stderr=subprocess.STDOUT)
             saved = json.loads((folder / "job.json").read_text())
             if result.returncode or saved["state"] != "done":
