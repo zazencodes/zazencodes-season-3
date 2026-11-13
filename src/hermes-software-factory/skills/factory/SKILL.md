@@ -20,13 +20,14 @@ ingest -> spec -> build -> validate -> pr
 | Command | What it does |
 | --- | --- |
 | `/factory add OWNER/REPO` | Finds the repository's clone or clones it, checks push access and registers it |
-| `/factory run OWNER/REPO` | Drains the queued issues, each in a fresh worker session |
+| `/factory run OWNER/REPO` | Builds the oldest waiting issue into a pull request, in this chat |
 | `/factory monitor` | Shows what the factory is doing |
 | `/factory stop [OWNER/REPO]` | Stops the job in progress |
 | `/factory resume OWNER/REPO ISSUE` | Picks a stopped job back up where it left off |
 
-The words after `/factory` choose the section below. In a scheduled run, the
-prompt is `/factory run OWNER/REPO`.
+The words after `/factory` choose the section below. In a scheduled run, each
+worker's prompt names one issue that the dispatcher already started; follow
+the run section from there.
 
 All bookkeeping goes through this script:
 
@@ -56,8 +57,12 @@ labeling an issue `factory` queues it.
 ## Schedule recurring runs
 
 A scheduled factory is a Hermes cron job that runs the dispatcher script
-directly, with no agent of its own. The dispatcher starts a fresh worker
-session for each queued issue.
+directly, with no agent of its own. The dispatcher works through every
+queued issue, oldest first, starting a fresh worker session for each one.
+Each worker's output goes to `worker-output.log` in its job folder. A lock
+stops two dispatchers overlapping on one repository, and issues filed during
+a batch wait for the next run. A failed, stopped or incomplete worker halts
+the batch so its work is kept.
 
 1. Resolve the actual `OWNER/REPO` before installing or scheduling. Ask when
    the request still contains a placeholder; never treat an example repository
@@ -92,27 +97,23 @@ and isn't standalone. When asked to show it, give its path and exact contents.
 
 ## run
 
-`/factory run OWNER/REPO` is a dispatcher: run `factory.py dispatch OWNER/REPO`.
-It snapshots every eligible queued issue, oldest first, and for each one
-claims the issue (`start`) and launches a separate
-`hermes chat --oneshot --skills factory` worker session, one after another.
-Each worker's output goes to `worker-output.log` in its job folder. A lock
-stops two dispatchers overlapping on one repository. Issues filed during a
-batch wait for the next run. A ready or draft PR lets the next worker start; a
-failed, stopped or incomplete worker halts the batch so its work is kept.
-Never run two workers against the same clone at once.
+`/factory run OWNER/REPO` builds one issue, the oldest waiting, right here in
+this chat, through the steps below. The user watches every stage. Never run
+`factory.py dispatch` from a chat.
+
+A scheduled run works differently: its cron job runs the dispatcher script
+directly (see Schedule recurring runs). The dispatcher claims each waiting
+issue with `start` and launches a separate worker session for it, so every
+issue gets a clean context. A worker's prompt says its issue was already
+started at ingest. A worker MUST NOT call `dispatch` or `start`; it reads the
+recorded job and carries out the steps below from the rest of Ingest through
+PR, then ends. A recovery prompt likewise continues the named stopped issue.
 
 Don't pass a custom `--source` to worker sessions: the Hermes gateway rejects
 custom source tags with a misleading model-connection `invalid_params` error.
 Verify any change to the launcher with a real model request using the same
 flags, environment and working directory; mocked process tests can't validate
 the gateway handshake.
-
-A worker's prompt says its issue was already started at ingest. A worker
-MUST NOT call `dispatch` or `start`; it reads the recorded job and carries
-out the steps below from the rest of Ingest through PR, then ends. A recovery
-prompt likewise continues the named stopped issue instead of dispatching a new
-batch.
 
 Running `/factory run` is the user's request to create a `factory/issue-<n>`
 branch, commit to it, push it and open a pull request, even in a repository
@@ -167,7 +168,7 @@ monitor shows these lines.
    If you made no change worth reviewing, run
    `factory.py stop OWNER/REPO --reason "<why>"` instead.
 6. Finish with two or three lines: the issue, the pull request link, ready or
-   draft, and what's left. The dispatcher then starts the next worker.
+   draft, and what's left.
 
 ## monitor
 

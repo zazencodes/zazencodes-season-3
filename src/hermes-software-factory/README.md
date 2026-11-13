@@ -19,7 +19,7 @@ GitHub issue labeled `factory`
 | Command | What it does |
 | --- | --- |
 | `/factory add OWNER/REPO` | Finds the repository's clone on the machine or clones it, checks push access and registers it |
-| `/factory run OWNER/REPO` | Works through every queued `factory` issue, oldest first, each in a fresh Hermes session |
+| `/factory run OWNER/REPO` | Builds the oldest `factory` issue into a pull request, stage by stage, in the chat |
 | `/factory monitor` | Draws what the factory is doing, from any chat |
 | `/factory stop [OWNER/REPO]` | Stops the job in progress |
 | `/factory resume OWNER/REPO ISSUE` | Picks a stopped job back up where it left off |
@@ -87,10 +87,8 @@ FACTORY_REPO = OWNER/REPO   # <- your GitHub repository, e.g. zazencodes/skills
 Load the factory skill and run `/factory run FACTORY_REPO`.
 ```
 
-Hermes works through every waiting `factory` issue, oldest first. Each issue
-gets its own fresh Hermes session and its own pull request. Issues you file
-while it's running wait for the next run. Use `/factory monitor` (below) to see
-which stage it's on.
+You can watch every stage in the chat. The factory takes the oldest labeled
+issue first, one issue per run.
 
 ## Run it on a schedule
 
@@ -112,7 +110,9 @@ Show me the job and its next run.
 ```
 
 Each tick runs the dispatcher script directly. It asks GitHub for `factory`
-issues and starts a Hermes session only for the ones waiting.
+issues and works through all of them, oldest first, starting a fresh Hermes
+session for each one so every issue gets a clean context. When nothing is
+waiting, no session starts.
 
 A scheduled run happens in the background. To see it, open another chat:
 
@@ -138,12 +138,13 @@ PRs.
 
 ## How it works
 
-`/factory run` runs `factory.py dispatch`. It claims each waiting issue in
-turn and starts a fresh Hermes worker session for it. In that session, Hermes
-does the judgment work with its own tools: reading the issue and the
-repository's AGENTS.md, writing the spec, editing code, running the checks and
-fixing failures (two attempts at most). A worker that stops or fails halts the
-batch, so its work is kept. `scripts/factory.py` keeps the books:
+In `/factory run`, Hermes builds one issue in the chat. On a schedule,
+`factory.py dispatch` claims each waiting issue in turn and starts a fresh
+Hermes worker session for it; a worker that stops or fails halts the batch, so
+its work is kept. Either way, Hermes does the judgment work with its own
+tools: reading the issue and the repository's AGENTS.md, writing the spec,
+editing code, running the checks and fixing failures (two attempts at most).
+`scripts/factory.py` keeps the books:
 
 | Command | Does |
 | --- | --- |
