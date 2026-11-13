@@ -61,8 +61,16 @@ passes through the chat.
 
 ## Use it
 
+Every prompt in this section starts with the same line. Put your GitHub
+repository there, in place of `OWNER/REPO`, and the rest of the prompt refers
+to it as `FACTORY_REPO`.
+
+Add your repository to the factory:
+
 ```text
-/factory add zazencodes/skills
+FACTORY_REPO = OWNER/REPO   # <- your GitHub repository, e.g. zazencodes/skills
+
+Load the factory skill and run `/factory add FACTORY_REPO`.
 ```
 
 Hermes looks for an existing clone under its data folder and your home folder.
@@ -73,7 +81,9 @@ where the clone is.
 File an issue, label it `factory`, then:
 
 ```text
-/factory run zazencodes/skills
+FACTORY_REPO = OWNER/REPO   # <- your GitHub repository, e.g. zazencodes/skills
+
+Load the factory skill and run `/factory run FACTORY_REPO`.
 ```
 
 You can watch every stage in the chat. The factory takes the oldest labeled
@@ -81,16 +91,17 @@ issue first.
 
 ## Run it on a schedule
 
-Paste this into Hermes chat, with your repository:
-
 ```text
-Run `/factory run zazencodes/skills` every 10 minutes as a Hermes cron job.
+FACTORY_REPO = OWNER/REPO   # <- your GitHub repository, e.g. zazencodes/skills
+
+Run `/factory run FACTORY_REPO` every 10 minutes as a Hermes cron job.
+Write the real repository name into the job wherever FACTORY_REPO appears.
 First load the factory skill and run its
-`scripts/factory.py install-precheck zazencodes/skills`. Then create the job:
-- name: factory zazencodes/skills
+`scripts/factory.py install-precheck FACTORY_REPO`. Then create the job:
+- name: factory FACTORY_REPO
 - schedule: every 10m
 - skills: factory
-- prompt: /factory run zazencodes/skills
+- prompt: /factory run FACTORY_REPO
 - script: the pre-check script it printed
 - deliver: local
 Show me the job and its next run.
