@@ -1,0 +1,4 @@
+.env
+__pycache__/
+test_factory_server.py
+README.md

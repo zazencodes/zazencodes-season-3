@@ -51,6 +51,12 @@ One Claude Code session orchestrates every job, `concurrency` at a time
 (default 3). Each job gets its own git worktree and branch. All state lives in
 `factory/jobs/`, so if the session dies, `/factory run` picks every job back up.
 
+## Run it on a server
+
+A webhook server lets the factory run on a host of your own instead of your
+laptop: label an issue and a container runs
+`claude -p "/factory run"` for you. See [`server/README.md`](server/README.md).
+
 ## Commands
 
 ```
@@ -103,6 +109,7 @@ factory/
   bin/route                   risk + surfaces → the job's reviewers and models
   dashboard.html              the board
 examples/jobs/                finished jobs from a real run
+server/                       webhook server, Dockerfile and compose file to self-host it
 INSTALL.md                    instructions for the installing agent
 DESIGN.md                     how it works and why
 ```
