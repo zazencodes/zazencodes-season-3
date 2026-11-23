@@ -24,6 +24,10 @@ that, scoped so it can land as one small pull request.
 3. `AGENTS.md` (or `CLAUDE.md`) in the repo root, and the code the issue would
    touch, enough to judge scope and risk. Use Read, Grep and Glob with paths
    under the repo root.
+4. `<job folder>/pending.md`: unfinished factory jobs (open PRs, and jobs
+   still in intake, spec or build) with the files each has changed so far. For
+   any that look related, read its `issue.md`, `intake.md` and `spec.md` in
+   `factory/jobs/<its job id>/`, whichever exist.
 
 ## Decide
 
@@ -46,6 +50,14 @@ For ACCEPT, rate:
 - **Surfaces**: `ui` if a user will see the change on a page or screen,
   `security` if it touches auth, permissions, user input reaching queries,
   shells or HTML, secrets, or payments. Both, or `none`.
+- **Base**: the branch to build on. Default to the base branch (`main`). Stack
+  on a pending factory branch from `pending.md` only when this job builds on
+  that branch's unmerged change (a follow-up, or code it adds), or would edit
+  the same files or functions so that branching from `main` would conflict
+  with it. Unrelated work always goes on `main`: a stacked PR can't merge until
+  everything below it has merged. A job in `pending.md` that isn't built yet is
+  a valid base; this job then waits until that one is built. Name the branch
+  exactly as `pending.md` shows it, and say why under Why.
 
 ## Write intake.md
 
@@ -54,6 +66,7 @@ DECISION: ACCEPT | NEEDS-INFO | REJECT
 RISK: low | medium | high
 SURFACES: ui, security | ui | security | none
 RESCOPED: yes | no
+BASE: main | factory/<job-id>
 
 ## Summary
 - 3 to 5 short bullets: what happened in this step and why
@@ -70,9 +83,9 @@ Two or three sentences on the decision, citing the code you looked at.
 For NEEDS-INFO only: numbered questions for the author.
 ```
 
-- The four header lines come first, then a blank line. Write `RISK`,
-  `SURFACES` and `RESCOPED` on every decision; for NEEDS-INFO and REJECT,
-  write your best guess.
+- The five header lines come first, then a blank line. Write `RISK`,
+  `SURFACES`, `RESCOPED` and `BASE` on every decision; for NEEDS-INFO and
+  REJECT, write your best guess.
 - `## Summary` comes right after the header: 3 to 5 short bullets a human can
   skim on the dashboard. The detail goes in the sections below it.
 - `RESCOPED: yes` when your Scope differs from what the issue asked for.

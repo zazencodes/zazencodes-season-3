@@ -21,8 +21,9 @@ and dashboard, fills `factory/checks.sh` with your project's real test, lint,
 typecheck and build commands, tailors the reviewers to your stack, creates the
 GitHub labels, and checks that `checks.sh` passes on `main`.
 
-You need Claude Code 2.1.257 or later, `python3`, and an authenticated
-[`gh`](https://cli.github.com/) that can push to the repo.
+You need Claude Code 2.1.257 or later, `python3`, an authenticated
+[`gh`](https://cli.github.com/) that can push to the repo, and
+[git-spice](https://abhinav.github.io/git-spice/) (`gs`) for stacked PRs.
 
 ## The loop
 
@@ -32,24 +33,26 @@ issues labeled `factory`
         ▼
 intake (fable) ── NEEDS-INFO → asks the author on the issue, waits for a reply
         │         REJECT     → says why on the issue, removes the label
-        ▼ ACCEPT, maybe rescoped; rates risk + surfaces
+        ▼ ACCEPT, maybe rescoped; rates risk + surfaces; picks BASE (main or a pending factory branch)
 route (script)    picks reviewers and models from config.json
         ▼
 spec-writer (opus) → spec.md
         ▼
-builder (opus) → commits, pushes, opens a draft PR "Closes #n"
+builder (opus) → commits, `gs branch submit` opens a draft PR "Closes #n" against BASE
         ▼            ▲
 gate (script) ─FAIL──┤  factory/checks.sh; no reviewer runs on a failing build
         ▼ PASS       │
 reviewers ─CHANGES───┘  code (haiku | sonnet), + ux & ui on UI changes, + security
         ▼ all PASS
-approver (opus) ── APPROVE  → sync with main, gate again, gh pr merge
+approver (opus) ── APPROVE  → once everything below it merged: sync with main, gate again, gh pr merge
                 └─ ESCALATE → PR ready for you, issue labeled factory:needs-human
 ```
 
 One Claude Code session orchestrates every job, `concurrency` at a time
-(default 3). Each job gets its own git worktree and branch. All state lives in
-`factory/jobs/`, so if the session dies, `/factory run` picks every job back up.
+(default 3). Each job gets its own git worktree and branch. A job that builds
+on, or would collide with, another job's unmerged branch is stacked on it with
+git-spice, and the stack merges bottom-up. All state lives in `factory/jobs/`,
+so if the session dies, `/factory run` picks every job back up.
 
 ## Commands
 
@@ -98,7 +101,7 @@ you a copy when you [sign up to my newsletter](https://zazencodes.com/newsletter
 factory/
   config.json                 concurrency, rounds, labels, routing, protected paths, prices
   checks.sh                   your repo's checks (the installer fills it in)
-  bin/job                     the only writer of job.json; refuses illegal moves; merges
+  bin/job                     the only writer of job.json; refuses illegal moves; restacks; merges
   bin/gate                    runs checks.sh in a job's worktree → round-N/checks.md
   bin/route                   risk + surfaces → the job's reviewers and models
   dashboard.html              the board
@@ -151,7 +154,9 @@ They come from a test run on a small private calculator repo, with
   access can add labels. Issue text reaches the agents as quoted data, never
   as their instructions.
 - The factory pushes only `factory/*` branches, merges only through
-  `gh pr merge`, and never deploys.
+  `gh pr merge`, and never deploys. Restacking runs `gs repo sync`, which
+  fast-forwards `main` in your checkout, so keep that checkout free of
+  uncommitted changes while the factory runs.
 
 ## More from ZazenCodes
 

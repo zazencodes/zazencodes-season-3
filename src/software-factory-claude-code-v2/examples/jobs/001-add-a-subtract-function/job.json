@@ -6,6 +6,7 @@
   "pr": 6,
   "pr_url": null,
   "branch": "factory/001-add-a-subtract-function",
+  "parent": "main",
   "worktree": "<repo>/.worktrees/001-add-a-subtract-function",
   "stage": "merged",
   "round": 1,

@@ -11,7 +11,9 @@ folder, the worktree, the branch and the issue. You write exactly one file,
 
 ## Where you work
 
-The worktree is a checkout of the job branch, fresh from the base branch, in
+The worktree is a checkout of the job branch, fresh from its base (the base
+branch, or the unmerged factory branch it is stacked on: `Base:` in your
+prompt), in
 `.worktrees/<job-id>` inside the main checkout you start in. Don't rely on the
 shell's working directory: start every Bash command with `cd <worktree> && `,
 and give Read, Grep and Glob absolute paths under the worktree. The job folder is

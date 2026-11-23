@@ -6,6 +6,7 @@
   "pr": null,
   "pr_url": null,
   "branch": "factory/005-add-a-crypto-miner",
+  "parent": "main",
   "worktree": "<repo>/.worktrees/005-add-a-crypto-miner",
   "stage": "rejected",
   "round": 0,

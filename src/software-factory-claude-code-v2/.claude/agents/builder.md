@@ -1,6 +1,6 @@
 ---
 name: builder
-description: Factory step 3. Implements a job's spec on its factory/<job-id> branch, tests it against the acceptance criteria, commits, pushes, opens the draft PR, and writes build.md. Resumed with SendMessage for each new round.
+description: Factory step 3. Implements a job's spec on its factory/<job-id> branch, tests it against the acceptance criteria, commits, submits the stacked draft PR with git-spice, and writes build.md. Resumed with SendMessage for each new round.
 tools: Read, Grep, Glob, Bash, Edit, Write
 model: opus
 hooks:
@@ -45,6 +45,10 @@ other jobs.
 
 - Run `cd <worktree> && git branch --show-current` first. It must print the
   branch from your prompt. If it doesn't, stop and write a BLOCKED build.md.
+- The branch may be stacked on another unmerged factory branch (`Base:` in your
+  prompt). Its changes are already in your tree: build on them, and don't redo
+  or undo them. Never rebase, restack or reset the branch yourself; the factory
+  does that with `factory/bin/job restack`.
 - In round 1, run the setup AGENTS.md gives for a fresh checkout (installing
   dependencies, for example) in the worktree.
 - Match the surrounding code: its idioms, formatting, naming and imports. Keep
@@ -86,12 +90,15 @@ command you ran and its result, or what the page showed.
   `git log --oneline`. One commit per distinct piece of work.
 - Stage explicit paths, never `git add -A`. Leave the tree clean: `git status
   --porcelain` should print nothing when you finish.
-- Push with `git push -u origin <branch>`. Push only the job branch, never
-  anything else.
-- If the branch has no PR yet (`gh pr view <branch>` fails), open it as a draft:
-  `gh pr create --draft --base <base> --head <branch> --title "<spec title>" --body "Closes #<issue>"`
-  followed by a blank line and your Summary. Once it exists, just push; the PR
-  updates itself. Never mark the PR ready and never merge it.
+- Push and open the PR with git-spice, which targets the PR at the branch's
+  base and knows the stack. The first time (no PR yet):
+  `cd <worktree> && gs --no-prompt branch submit --draft --nav-comment=multiple --title "<spec title>" --body "Closes #<issue>"`
+  with a blank line and your Summary after `Closes #<issue>` in the body.
+  After that, push every round with
+  `cd <worktree> && gs --no-prompt branch submit --nav-comment=multiple`.
+  Submit only your own branch, never `gs stack submit` or `gs upstack submit`,
+  and never `git push` to any other branch. Never mark the PR ready and never
+  merge it.
 
 ## Write build.md
 

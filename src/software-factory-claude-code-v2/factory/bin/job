@@ -3,16 +3,26 @@
 
 Every stage change goes through `advance`, which checks the files that justify
 it and refuses anything else. GitHub side effects that belong to a transition
-(labels, comments, the worktree, the merge) happen here too, so the
-orchestrator never improvises them.
+(labels, comments, the worktree, restacks) happen here too, so the
+orchestrator never improvises them. Every job ends as a PR. An approved PR
+merges automatically once everything below it in its stack has merged; an
+escalated one (needs-human) waits for the user and blocks the stack above it.
+
+Branches are stacked with git-spice. Each job has a `parent`: the base branch,
+or the branch of an unmerged factory job it builds on (intake picks it from
+pending.md). `restack` keeps a job on top of its parent, and moves it onto the
+base branch once the parent's PR is merged. A job stacked on a branch that is
+not built yet (intake, needs-info, parked, spec or build) parks until that job
+reaches the gate.
 
 Usage:
   job queue                      what /factory run should do with each labeled issue
   job create <issue>             new job for an open `factory` issue; prints the job id
   job advance <job> <stage>      move a job to <stage>, or refuse
-  job merge <job>                APPROVE → sync with the base branch, gate, merge the PR
-  job feedback <job>             needs-human → build, with your feedback (stdin) as feedback-<k>.md
-  job reject <job>               needs-info or needs-human → rejected, with your reason (stdin) as rejection.md
+  job merge <job>                ready → merge the approved PR, once its parent is the base branch
+  job restack <job>              rebase the job's branch onto its parent (or the base, once the parent merged)
+  job feedback <job>             ready or needs-human → build, with your feedback (stdin) as feedback-<k>.md
+  job reject <job>               needs-info, ready or needs-human → rejected, with your reason (stdin) as rejection.md
   job agents <job> <json>        record the routed agent set (called by factory/bin/route)
   job sync <job>                 refresh reviews, gate and cost from the job's files
   job summary [<job>...]         table of jobs: issue, stage, PR, cost, time
@@ -41,18 +51,24 @@ MARKER = "<!-- factory -->"
 TRANSITIONS = {
     "intake": {"needs-info", "rejected", "spec"},
     "needs-info": {"intake", "rejected"},
+    "parked": {"spec", "intake"},
     "spec": {"build"},
     "build": {"gate", "needs-human"},
     "gate": {"review", "build", "needs-human"},
     "review": {"approve", "build", "needs-human"},
-    "approve": {"merging", "needs-human"},
+    "approve": {"ready", "needs-human"},
+    "ready": {"merging", "build", "rejected"},
     "merging": {"needs-human"},
     "needs-human": {"build", "rejected"},
 }
 TERMINAL = {"merged", "rejected"}
 # Any unfinished job can move to merged once its PR is merged on GitHub,
-# whether the factory merged it or a person did mid-round.
-WAITING = {"needs-info", "needs-human"}
+# whether the factory merged it or a person did.
+# `ready` is approved and waits for its parent to merge; `needs-human` waits for the user.
+WAITING = {"needs-info", "parked", "ready", "needs-human"}
+# A parent still in these stages hasn't been built yet: a job stacked on it parks.
+BUILDING = {"intake", "needs-info", "parked", "spec", "build"}
+MERGE_METHOD = CONFIG["merge_method"]
 CONCURRENCY = CONFIG["concurrency"]
 
 
@@ -176,6 +192,93 @@ def round_dir(job, n=None):
 
 def reviewers(job):
     return list(job["agents"]["reviewers"])
+
+
+def parent_ref(job):
+    """The ref a job's branch sits on: origin/<base>, or a factory job's local branch."""
+    return f"origin/{BASE}" if job["parent"] == BASE else job["parent"]
+
+
+def children(job):
+    """Unfinished jobs stacked directly on this job's branch."""
+    return [j for j in all_jobs() if j["id"] != job["id"] and j.get("parent") == job["branch"]
+            and j["stage"] not in TERMINAL]
+
+
+def stack_candidates(job):
+    """Unfinished jobs a new job could stack on. Their branch names are fixed at creation."""
+    return [j for j in all_jobs() if j["id"] != job["id"] and j["stage"] not in TERMINAL]
+
+
+def write_pending(job):
+    """pending.md: the unmerged factory branches intake may stack this job on."""
+    run(["git", "fetch", "--quiet", "origin"], check=False)
+    lines = [
+        "# Pending factory branches",
+        "",
+        f"Unmerged factory work this job could build on instead of `{BASE}`. Pick one as",
+        "BASE in intake.md only when this job depends on it or would touch the same files.",
+        "A job not built yet (intake, needs-info, parked, spec or build) is a valid BASE:",
+        "this job then parks until that one reaches the gate, and goes back to intake if",
+        "that one is rejected.",
+        "",
+    ]
+    candidates = stack_candidates(job)
+    if not candidates:
+        lines.append(f"None. BASE is `{BASE}`.")
+    for j in candidates:
+        files = run(["git", "diff", "--name-only", f"{parent_ref(j)}...{j['branch']}"], check=False)
+        lines += [
+            f"## {j['branch']}",
+            "",
+            f"- Issue #{j['issue']}: {j['title']}",
+            (f"- PR #{j['pr']} ({j['stage']}), stacked on `{j['parent']}`" if j["pr"]
+             else f"- No PR yet, not built yet ({j['stage']})"),
+            f"- Scope: see factory/jobs/{j['id']}/issue.md, intake.md and spec.md (whichever exist)",
+            "- Files changed so far:",
+            *[f"  - {f}" for f in files.stdout.split()],
+            "",
+        ]
+    (job_dir(job["id"]) / "pending.md").write_text("\n".join(lines) + "\n")
+
+
+def gs(*args, cwd=REPO, check=True):
+    return run(["gs", "--no-prompt", *args], cwd=cwd, check=check)
+
+
+def start_worktree(job):
+    """Create the job's worktree from its parent and track it with git-spice."""
+    run(["git", "fetch", "origin", BASE])
+    Path(job["worktree"]).parent.mkdir(parents=True, exist_ok=True)
+    # --no-track: starting from origin/<base> would otherwise make origin/<base> the
+    # branch's upstream, and `gs branch submit` pushes to the upstream's name.
+    run(["git", "worktree", "add", "--no-track", "-b", job["branch"], job["worktree"],
+         parent_ref(job)])
+    if run(["git", "rev-parse", "--verify", "--quiet", "refs/spice/data"], check=False).returncode:
+        gs("repo", "init", "--trunk", BASE, "--remote", "origin")
+    gs("branch", "track", job["branch"], "--base", job["parent"], cwd=job["worktree"])
+
+
+def parked_parent(job):
+    """For a stacked job: 'building', 'built' (go to spec), or 'gone' (re-intake)."""
+    pj = next((j for j in all_jobs() if j["branch"] == job["parent"]), None)
+    if pj is None or pj["stage"] == "rejected":
+        return "gone"
+    return "building" if pj["stage"] in BUILDING else "built"
+
+
+def delete_branch(job):
+    """Drop a finished job's worktree, and its branches once nothing is stacked on it.
+
+    A stacked PR targets its parent's branch; deleting that branch on GitHub
+    before the child PR is retargeted would close the child PR.
+    """
+    if Path(job["worktree"]).exists():
+        run(["git", "worktree", "remove", "--force", job["worktree"]])
+    if not children(job):
+        gs("branch", "delete", "--force", job["branch"], check=False)
+        run(["git", "branch", "-D", job["branch"]], check=False)
+        run(["git", "push", "origin", "--delete", job["branch"]], check=False)
 
 
 # ---- Issue → issue.md ------------------------------------------------------
@@ -318,7 +421,7 @@ def sync(job):
         rd = round_dir(job)
         gate = header(rd / "checks.md").get("GATE") if (rd / "checks.md").exists() else None
         job["gate"] = gate
-        if job["agents"] and job["stage"] in {"review", "approve", "merging", "merged", "needs-human"}:
+        if job["agents"] and job["stage"] in {"review", "approve", "ready", "merging", "merged", "needs-human"}:
             job["reviews"] = {}
             for r in reviewers(job):
                 line = first_line(rd / f"review-{r}.md")
@@ -364,6 +467,17 @@ def next_round(job):
     job["reviews"] = {}
 
 
+def notify_needs_human(job):
+    body = f"### Factory: needs a human\n\n{(job_dir(job['id']) / 'decision.md').read_text().split(chr(10), 1)[1].strip()}"
+    if job["pr"]:
+        if gh_json("pr", "view", str(job["pr"]), "--json", "isDraft")["isDraft"]:
+            gh("pr", "ready", str(job["pr"]))
+        comment("pr", job["pr"], body)
+    else:
+        comment("issue", job["issue"], body)
+    label("issue", job["issue"], add=LABELS["needs_human"])
+
+
 def advance(job, stage):
     old = job["stage"]
     require(stage in TRANSITIONS.get(old, set()) or (stage == "merged" and old not in TERMINAL),
@@ -379,10 +493,12 @@ def advance(job, stage):
 
     elif stage == "rejected" and old in WAITING:
         require((d / "rejection.md").exists(), "use `job reject` to reject a waiting job")
+        stacked = [j["id"] for j in children(job)]
+        require(not stacked, f"jobs are stacked on {job['branch']}: {', '.join(stacked)}; reject them first")
         reason = (d / "rejection.md").read_text().split("\n", 1)[1].strip()
         comment("issue", job["issue"], f"### Factory: rejected\n\n{reason}")
-        waiting = LABELS["needs_info"] if old == "needs-info" else LABELS["needs_human"]
-        label("issue", job["issue"], remove=f"{LABELS['queue']},{waiting}")
+        waiting = {"needs-info": LABELS["needs_info"], "needs-human": LABELS["needs_human"]}.get(old)
+        label("issue", job["issue"], remove=",".join(filter(None, [LABELS["queue"], waiting])))
         if job["pr"]:
             gh("pr", "close", str(job["pr"]))
             run(["git", "push", "origin", "--delete", job["branch"]], check=False)
@@ -393,17 +509,40 @@ def advance(job, stage):
         title = f"### Factory intake: {decision}"
         if stage == "spec":
             require(job["agents"], "route the job first: factory/bin/route " + job["id"])
+            parent = header(d / "intake.md").get("BASE") or BASE
+            allowed = {BASE} | {j["branch"] for j in stack_candidates(job)}
+            require(parent in allowed, f"intake.md BASE {parent!r} isn't {BASE} or a pending factory branch")
+            job["parent"] = parent
             i = job["intake"]
             title += f" (risk {i['risk']}, surfaces: {', '.join(i['surfaces']) or 'none'})"
+            if parent != BASE:
+                title += f", stacked on {parent}"
+            if parked_parent(job) == "building":
+                stage = "parked"
+                title += f"; parked until {parent} is built"
         comment("issue", job["issue"], f"{title}\n\n{intake_body()}")
         if stage == "needs-info":
             label("issue", job["issue"], add=LABELS["needs_info"])
         elif stage == "rejected":
             label("issue", job["issue"], remove=LABELS["queue"])
-        else:
-            run(["git", "fetch", "origin", BASE])
-            Path(job["worktree"]).parent.mkdir(parents=True, exist_ok=True)
-            run(["git", "worktree", "add", "-b", job["branch"], job["worktree"], f"origin/{BASE}"])
+        elif stage == "spec":
+            start_worktree(job)
+
+    elif old == "parked":
+        require_slot(job["id"])
+        state = parked_parent(job)
+        if stage == "spec":
+            require(state == "built", f"{job['parent']} is {state}, not built")
+            if next(j for j in all_jobs() if j["branch"] == job["parent"])["stage"] == "merged":
+                job["parent"] = BASE
+            start_worktree(job)
+        else:  # → intake: the parent was rejected; decide the base again
+            require(state == "gone", f"{job['parent']} still exists; go to spec once it is built")
+            k = len(list(d.glob("intake-*.md"))) + 1
+            (d / "intake.md").rename(d / f"intake-{k}.md")
+            job["intake"], job["agents"], job["parent"] = None, None, BASE
+            write_issue_md(job)
+            write_pending(job)
 
     elif old == "needs-info":
         require_slot(job["id"])
@@ -411,6 +550,7 @@ def advance(job, stage):
         (d / "intake.md").rename(d / f"intake-{k}.md")
         job["intake"] = None
         write_issue_md(job)
+        write_pending(job)
         label("issue", job["issue"], remove=LABELS["needs_info"])
 
     elif old == "spec":
@@ -421,8 +561,8 @@ def advance(job, stage):
         status = first_line(d / "build.md")
         require(status == "STATUS: READY", f"build.md starts with {status!r}, not STATUS: READY")
         require(not git(job, "status", "--porcelain").stdout.strip(), "the worktree has uncommitted changes")
-        require(int(git(job, "rev-list", "--count", f"origin/{BASE}..HEAD").stdout) > 0,
-                f"{job['branch']} has no commits on top of origin/{BASE}")
+        require(int(git(job, "rev-list", "--count", f"{parent_ref(job)}..HEAD").stdout) > 0,
+                f"{job['branch']} has no commits on top of {parent_ref(job)}")
         git(job, "fetch", "origin", job["branch"], check=False)
         head = git(job, "rev-parse", "HEAD").stdout.strip()
         res = git(job, "rev-parse", f"origin/{job['branch']}", check=False)
@@ -475,31 +615,31 @@ def advance(job, stage):
                 next_round(job)
 
     elif old == "approve":
-        want = "APPROVE" if stage == "merging" else "ESCALATE"
+        want = "APPROVE" if stage == "ready" else "ESCALATE"
         line = first_line(d / "decision.md")
         require(line == want, f"decision.md starts with {line!r}, not {want}")
+        if stage == "ready":
+            if gh_json("pr", "view", str(job["pr"]), "--json", "isDraft")["isDraft"]:
+                gh("pr", "ready", str(job["pr"]))
+            body = (d / "decision.md").read_text().split("\n", 1)[1].strip()
+            when = ("it merges now" if job["parent"] == BASE
+                    else f"it merges automatically once {job['parent']} has merged")
+            comment("pr", job["pr"], f"### Factory: approved, {when}\n\n{body}")
 
-    elif old == "needs-human":
+    elif old in {"ready", "needs-human"} and stage == "build":
         feedback = sorted(d.glob("feedback-*.md"))
         require(feedback and feedback[-1].stat().st_mtime > (d / "decision.md").stat().st_mtime,
                 "use `job feedback` to send a job back to the builder")
         job["round_limit"] = job["round"] + CONFIG["max_rounds"]
         next_round(job)
-        label("issue", job["issue"], remove=LABELS["needs_human"])
+        if old == "needs-human":
+            label("issue", job["issue"], remove=LABELS["needs_human"])
 
     if stage == "needs-human":
-        body = f"### Factory: needs a human\n\n{(d / 'decision.md').read_text().split(chr(10), 1)[1].strip()}"
-        if job["pr"]:
-            if gh_json("pr", "view", str(job["pr"]), "--json", "isDraft")["isDraft"]:
-                gh("pr", "ready", str(job["pr"]))
-            comment("pr", job["pr"], body)
-        else:
-            comment("issue", job["issue"], body)
-        label("issue", job["issue"], add=LABELS["needs_human"])
+        notify_needs_human(job)
 
-    if stage in TERMINAL and Path(job["worktree"]).exists():
-        run(["git", "worktree", "remove", "--force", job["worktree"]])
-        run(["git", "branch", "-D", job["branch"]], check=False)
+    if stage in TERMINAL:
+        delete_branch(job)
 
     job["stage"] = stage
     job["ended"] = now() if stage in TERMINAL | WAITING else None
@@ -534,7 +674,7 @@ def cmd_create(number):
     job = {
         "id": job_id, "issue": issue["number"], "title": issue["title"], "issue_url": issue["url"],
         "pr": None, "pr_url": None,
-        "branch": f"factory/{job_id}",
+        "branch": f"factory/{job_id}", "parent": BASE,
         "worktree": str(REPO / ".worktrees" / job_id),
         "stage": "intake", "round": 0, "round_limit": CONFIG["max_rounds"],
         "intake": None, "agents": None, "gate": None, "reviews": {},
@@ -542,6 +682,7 @@ def cmd_create(number):
     }
     write_issue_md(job)
     save(job)
+    write_pending(job)
     print(job_id)
 
 
@@ -553,23 +694,49 @@ def cmd_queue():
     for j in jobs.values():
         if j["stage"] not in TERMINAL and j["pr"] and pr_state(j) == "MERGED":
             save(advance(sync(j), "merged"))
+    # Only open issues labeled for the factory are ever worked on: closed ones are
+    # never created, resumed, restacked or merged.
     issues = gh_json("issue", "list", "--label", LABELS["queue"], "--state", "open",
                      "--limit", "200", "--json", "number,title")
     open_numbers = {i["number"] for i in issues}
+    # Waiting jobs have no agent on them, so keep their stacks current here, and
+    # merge approved jobs whose parent has merged. Parents have lower ids, so one
+    # pass in id order walks a stack bottom-up.
+    for j in sorted(jobs.values(), key=lambda j: j["id"]):
+        if j["issue"] not in open_numbers:
+            continue
+        if j["stage"] in {"ready", "needs-human"} and needs_restack(j):
+            try:
+                restack(j)
+            except Refused as e:
+                print(f"{j['id']}: not restacked: {e}", file=sys.stderr)
+                continue
+        if j["stage"] in {"ready", "merging"} and j["parent"] == BASE:
+            cmd_merge(j)
     running_rows, replied_rows, new_rows, other_rows = [], [], [], []
     for issue in sorted(issues, key=lambda i: i["number"]):
         n = issue["number"]
         j = jobs.get(n)
         if not j:
             new_rows.append(("new", n, "-", "-", issue["title"]))
+        elif j["stage"] == "parked":
+            state = parked_parent(j)
+            if state == "building":
+                other_rows.append(("wait", n, j["id"], j["stage"], f"parked until {j['parent']} is built"))
+            else:
+                replied_rows.append(("resume", n, j["id"], j["stage"],
+                                     "parent built: advance to spec" if state == "built"
+                                     else "parent rejected: advance to intake"))
         elif j["stage"] == "needs-info":
             if replied_since_question(fetch_issue(n)):
                 replied_rows.append(("resume", n, j["id"], j["stage"], "author replied"))
             else:
                 other_rows.append(("wait", n, j["id"], j["stage"], "waiting for the author"))
         elif j["stage"] == "needs-human":
-            other_rows.append(("wait", n, j["id"], j["stage"], f"merge PR #{j['pr']}, or give feedback"
+            other_rows.append(("wait", n, j["id"], j["stage"], f"review PR #{j['pr']}, or give feedback"
                                if j["pr"] else "give feedback"))
+        elif j["stage"] == "ready":
+            other_rows.append(("wait", n, j["id"], j["stage"], f"approved; PR #{j['pr']} merges once {j['parent']} merges"))
         elif j["stage"] == "rejected":
             other_rows.append(("skip", n, j["id"], j["stage"], f"rejected; delete factory/jobs/{j['id']} to retry"))
         elif j["stage"] == "merged":
@@ -592,13 +759,114 @@ def cmd_queue():
         print("\t".join(str(c) for c in row))
 
 
+def parent_job(job):
+    return next((j for j in all_jobs() if j["branch"] == job["parent"]), None)
+
+
+def needs_restack(job):
+    if job["parent"] == BASE or not Path(job["worktree"]).exists():
+        return False
+    pj = parent_job(job)
+    if pj is None or pj["stage"] == "merged":
+        return True
+    return git(job, "merge-base", "--is-ancestor", job["parent"], "HEAD", check=False).returncode != 0
+
+
+_repo_synced = False
+
+
+def repo_sync():
+    """`gs repo sync` once per process: fast-forwards the local base branch (in the
+    main checkout), deletes branches whose PRs merged and moves their children onto
+    the base. Refuses, without touching any job, when the sync fails (e.g. local
+    changes on the base branch would be overwritten)."""
+    global _repo_synced
+    if _repo_synced:
+        return
+    # gs autostashes local changes and re-applies them after pulling, which can
+    # leave conflict markers in the user's checkout and still exit 0. Only sync
+    # a clean checkout.
+    dirty = run(["git", "status", "--porcelain", "--untracked-files=no"]).stdout.strip()
+    if dirty:
+        raise Refused(f"{REPO} has uncommitted changes; commit or set them aside, then run the "
+                      f"queue again (gs repo sync won't run on a dirty checkout):\n{dirty}")
+    res = gs("repo", "sync", check=False)
+    if res.returncode != 0:
+        raise Refused(f"`gs repo sync` failed; commit or set aside local changes on {BASE} "
+                      f"in {REPO}, then run the queue again:\n{(res.stdout + res.stderr).strip()}")
+    _repo_synced = True
+
+
+def restack(job):
+    """Restack the job with git-spice, in its own worktree.
+
+    git-spice skips branches checked out in another worktree, so each job is
+    restacked from its own worktree rather than with `gs stack restack`. While the
+    parent is open: `gs branch restack` onto the parent's tip. Once the parent
+    merged: `gs repo sync`, then `gs branch onto <base>`, which replays only this
+    job's commits (git-spice records the fork point, so squash merges are fine).
+    Pushes a changed branch that has a PR (`gs branch submit` also retargets the
+    PR). A waiting job is gated again after a change. A conflict or a failing gate
+    sends the job to needs-human.
+    """
+    if not needs_restack(job):
+        print(f"{job['id']}: up to date on {job['parent']}")
+        return
+    old_parent = job["parent"]
+    pj = parent_job(job)
+    before = git(job, "rev-parse", "HEAD").stdout.strip()
+    git(job, "fetch", "--quiet", "origin")
+
+    def fail(why):
+        escalate(job, why)
+        if job["stage"] != "needs-human":
+            job["stage"], job["ended"] = "needs-human", now()
+            notify_needs_human(job)
+        save(sync(job))
+        print(f"{job['id']}: needs-human: {why.splitlines()[0]}")
+
+    if pj is None or pj["stage"] == "merged":
+        repo_sync()
+        res = gs("branch", "onto", BASE, cwd=job["worktree"], check=False)
+        if res.returncode == 0:
+            job["parent"] = BASE
+    else:
+        res = gs("branch", "restack", cwd=job["worktree"], check=False)
+    if res.returncode != 0:
+        git(job, "rebase", "--abort", check=False)
+        return fail(f"Restacking {job['branch']} onto {old_parent} conflicts:\n\n"
+                    f"```\n{(res.stdout + res.stderr).strip()}\n```")
+    save(job)
+    after = git(job, "rev-parse", "HEAD").stdout.strip()
+    moved = job["parent"] != old_parent
+    if job["pr"] and (after != before or moved):
+        # Pushes the branch and retargets its PR at the new parent.
+        res = gs("branch", "submit", "--update-only", "--nav-comment=false", cwd=job["worktree"], check=False)
+        if res.returncode != 0:
+            return fail(f"Pushing the restacked {job['branch']} failed:\n\n```\n{(res.stdout + res.stderr).strip()}\n```")
+    if moved and pj and not children(pj):
+        delete_branch(pj)
+    if after == before:
+        print(f"{job['id']}: up to date on {job['parent']}")
+        return
+    if job["stage"] in WAITING:
+        gate = subprocess.run([str(BIN / "gate"), job["id"], "--restack"], capture_output=True, text=True)
+        if gate.returncode != 0:
+            return fail(f"The gate failed after restacking onto {job['parent']}. "
+                        f"See round-{job['round']}/restack-checks.md.\n\n{gate.stdout.strip()}")
+    print(f"{job['id']}: restacked onto {job['parent']} ({before[:7]} → {after[:7]})")
+
+
 def cmd_merge(job):
-    sync(job)
-    if job["stage"] == "approve":
+    """Merge an approved PR whose parent is the base branch; otherwise leave it ready."""
+    if job["stage"] == "ready":
+        if job["parent"] != BASE:
+            print(f"{job['id']}: approved; waits for {job['parent']} to merge")
+            return
         save(advance(job, "merging"))
     if job["stage"] != "merging":
-        die(f"{job['id']} is in {job['stage']}, not approve or merging")
-    if job["pr"] and pr_state(job) == "MERGED":
+        die(f"{job['id']} is in {job['stage']}, not ready or merging")
+    if pr_state(job) == "MERGED":
         save(advance(sync(job), "merged"))
         print(f"{job['id']}: merged PR #{job['pr']}")
         return
@@ -608,6 +876,9 @@ def cmd_merge(job):
         save(advance(sync(job), "needs-human"))
         print(f"{job['id']}: needs-human: {why.splitlines()[0]}")
 
+    pr = gh_json("pr", "view", str(job["pr"]), "--json", "baseRefName,isDraft")
+    if pr["baseRefName"] != BASE:
+        return fail(f"PR #{job['pr']} targets {pr['baseRefName']}, not {BASE}; restack it first.")
     git(job, "fetch", "origin", BASE)
     merged = git(job, "merge", "--no-edit", f"origin/{BASE}", check=False)
     if merged.returncode != 0:
@@ -619,32 +890,30 @@ def cmd_merge(job):
                     f"See round-{job['round']}/merge-checks.md.\n\n{gate.stdout.strip()}")
     try:
         git(job, "push", "origin", job["branch"])
-        if gh_json("pr", "view", str(job["pr"]), "--json", "isDraft")["isDraft"]:
+        if pr["isDraft"]:
             gh("pr", "ready", str(job["pr"]))
-        gh("pr", "merge", str(job["pr"]), f"--{CONFIG['merge_method']}")
+        gh("pr", "merge", str(job["pr"]), f"--{MERGE_METHOD}")
     except Refused as e:
         return fail(f"The merge failed:\n\n```\n{e}\n```")
-    # GitHub may already have deleted the branch on merge.
-    run(["git", "push", "origin", "--delete", job["branch"]], check=False)
     save(advance(sync(job), "merged"))
     print(f"{job['id']}: merged PR #{job['pr']}")
 
 
 def cmd_feedback(job, text):
-    if job["stage"] != "needs-human":
-        die(f"{job['id']} is in {job['stage']}, not needs-human")
+    if job["stage"] not in {"ready", "needs-human"}:
+        die(f"{job['id']} is in {job['stage']}, not ready or needs-human")
     if not text.strip():
         die("no feedback on stdin")
     d = job_dir(job["id"])
     k = len(list(d.glob("feedback-*.md"))) + 1
-    (d / f"feedback-{k}.md").write_text(f"# Feedback {k}\n\nFrom @{operator()} after the job escalated.\n\n{text.strip()}\n")
+    (d / f"feedback-{k}.md").write_text(f"# Feedback {k}\n\nFrom @{operator()} while the job was {job['stage']}.\n\n{text.strip()}\n")
     save(advance(sync(job), "build"))
     print(f"{job['id']}: feedback-{k}.md, round {job['round']}")
 
 
 def cmd_reject(job, text):
     if job["stage"] not in WAITING:
-        die(f"{job['id']} is in {job['stage']}, not needs-info or needs-human")
+        die(f"{job['id']} is in {job['stage']}, not needs-info, ready or needs-human")
     if not text.strip():
         die("no reason on stdin")
     (job_dir(job["id"]) / "rejection.md").write_text(f"REJECTED\n\nBy @{operator()} while the job was {job['stage']}.\n\n{text.strip()}\n")
@@ -694,7 +963,9 @@ def main(argv):
             save(sync(job))
             print(f"{job['id']}: {job['stage']} (round {job['round']})")
         elif cmd == "merge" and len(args) == 1:
-            cmd_merge(resolve(args[0]))
+            cmd_merge(sync(resolve(args[0])))
+        elif cmd == "restack" and len(args) == 1:
+            restack(sync(resolve(args[0])))
         elif cmd == "feedback" and len(args) == 1:
             cmd_feedback(resolve(args[0]), sys.stdin.read())
         elif cmd == "reject" and len(args) == 1:

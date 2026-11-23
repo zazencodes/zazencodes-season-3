@@ -51,7 +51,7 @@
 
   /* Board */
   .board {
-    display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 12px;
+    display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 12px;
     padding: 20px 32px 40px; align-items: start;
   }
   .col { min-width: 0; }
@@ -286,10 +286,11 @@
 const POLL_MS = 2000
 const COLUMNS = [
   { label: 'Intake', who: 'intake · fable', stages: ['intake', 'needs-info'] },
+  { label: 'Parked', who: 'waits for its base', stages: ['parked'] },
   { label: 'Spec', who: 'spec-writer · opus', stages: ['spec'] },
   { label: 'Build', who: 'builder · gate', stages: ['build', 'gate'] },
   { label: 'Review', who: 'routed reviewers', stages: ['review'] },
-  { label: 'Approve', who: 'approver · merge', stages: ['approve', 'merging'] },
+  { label: 'Approve', who: 'approver · merge', stages: ['approve', 'ready', 'merging'] },
   { label: 'Needs human', who: 'you', stages: ['needs-human'], cls: 'human' },
   { label: 'Done', who: 'merged · rejected', stages: ['merged', 'rejected'], cls: 'merged-col' },
 ]
@@ -374,12 +375,22 @@ function links(job) {
   return out.join('')
 }
 
+// The job a stacked job builds on: "004 #6", or with detail "004-add-a-chart (#6, parked)".
+function parentLabel(job, detail = false) {
+  const id = (job.parent || '').replace(/^factory\//, '')
+  const parent = jobs.find((j) => j.id === id)
+  if (!parent) return id || 'its base'
+  return detail ? `${parent.id} (#${parent.issue}, ${parent.stage})` : `${id.split('-')[0]} #${parent.issue}`
+}
+
 function card(job, rounds) {
   const live = LIVE.has(job.stage)
   const human = job.stage === 'needs-human'
   const done = job.stage === 'merged' || job.stage === 'rejected'
   const [num, ...slug] = job.id.split('-')
   const flag = human ? '<span class="flag">your call</span>'
+    : job.stage === 'ready' ? '<span class="flag wait">approved · waits for stack</span>'
+    : job.stage === 'parked' ? `<span class="flag wait">waits for ${esc(parentLabel(job))}</span>`
     : job.stage === 'needs-info' ? '<span class="flag wait">asked author</span>'
     : job.stage === 'rejected' ? '<span class="flag wait">rejected</span>' : ''
   const risk = job.intake?.risk
@@ -400,7 +411,8 @@ function card(job, rounds) {
       <div class="links">${links(job)}</div>
       ${rounds.length ? `<div class="rounds">${rounds.join('')}</div>` : ''}
       <div class="meta">${meta}</div>
-      ${human ? `<div class="hint">${job.pr ? `merge PR #${job.pr} to approve<br>` : ''}or give feedback: /factory &lt;anything&gt;</div>` : ''}
+      ${job.stage === 'parked' ? `<div class="hint">stacked on ${esc(parentLabel(job, true))}<br>resumes once it passes build</div>` : ''}
+      ${human ? `<div class="hint">${job.pr ? `review and merge PR #${job.pr}<br>(it blocks the PRs stacked on it)<br>` : ''}or give feedback: /factory &lt;anything&gt;</div>` : ''}
     </article>`
 }
 
@@ -474,8 +486,8 @@ async function listFiles(dir) {
   return out
 }
 
-const ORDER = ['issue.md', 'intake.md', 'spec.md', 'build.md', 'decision.md', 'rejection.md']
-const ROUND_ORDER = ['checks', 'review-code', 'review-security', 'review-ux', 'review-ui', 'merge-checks']
+const ORDER = ['issue.md', 'pending.md', 'intake.md', 'spec.md', 'build.md', 'decision.md', 'rejection.md']
+const ROUND_ORDER = ['checks', 'review-code', 'review-security', 'review-ux', 'review-ui', 'restack-checks', 'merge-checks']
 
 function fileRank(path) {
   if (ORDER.includes(path)) return [0, ORDER.indexOf(path), path]

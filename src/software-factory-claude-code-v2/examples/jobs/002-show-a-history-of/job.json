@@ -6,6 +6,7 @@
   "pr": 7,
   "pr_url": null,
   "branch": "factory/002-show-a-history-of",
+  "parent": "main",
   "worktree": "<repo>/.worktrees/002-show-a-history-of",
   "stage": "merged",
   "round": 1,

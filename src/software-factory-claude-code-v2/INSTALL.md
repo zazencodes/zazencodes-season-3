@@ -18,6 +18,10 @@ Stop and tell the user if any of these fail:
 - `claude --version` is 2.1.257 or later (the intake agent runs on Fable).
 - `python3 --version` is 3.10 or later. The scripts use only the standard
   library.
+- `gs --version` prints git-spice 0.19 or later
+  (<https://abhinav.github.io/git-spice/start/install/>; on some systems `gs`
+  is Ghostscript instead), and `gs auth status` shows it is logged in to
+  GitHub (`gs auth login`; the GitHub CLI option reuses `gh`'s token).
 - None of the files in step 1 already exist. If one does, show the user the
   clash and ask before overwriting.
 
@@ -114,6 +118,11 @@ open http://localhost:8000/dashboard.html.
 Each job works in its own git worktree, a full checkout of the repo at
 `.worktrees/<job-id>` (gitignored). A tool run from the repo root that doesn't
 read `.gitignore` sees those copies too; exclude `.worktrees/` in its config.
+
+Branches are stacked with git-spice (`gs`): a job builds on `main`, or on an
+unmerged factory branch when its work depends on it or would touch the same
+code. Keep this checkout's `main` free of uncommitted changes to tracked files
+while the factory runs: restacking fast-forwards it with `gs repo sync`.
 ```
 
 **`.gitignore`.** Append these two lines:
@@ -163,9 +172,13 @@ Then tell the user, in a few lines:
 
 - Label one or two small issues `factory`, then run `/factory run` in Claude
   Code from the project root.
-- Every job ends as a PR. The approver merges what it approves; the rest wait
-  labeled `factory:needs-human`. Approve one by merging it on GitHub, or tell
-  the factory what to change with `/factory <anything>`.
+- Every job ends as a PR. The approver merges what it approves, once every PR
+  below it in its stack has merged; the rest wait labeled
+  `factory:needs-human` and block the PRs stacked on them. Approve one by
+  merging it on GitHub, or tell the factory what to change with
+  `/factory <anything>`.
+- Keep the checkout's `main` free of uncommitted changes while the factory
+  runs: restacks fast-forward it with `gs repo sync`.
 - Intake runs on Fable, once per issue. Depending on their plan, Fable can
   bill to usage credits rather than the plan's included usage.
 - To start carefully, set `concurrency` to 1 in `factory/config.json` and read

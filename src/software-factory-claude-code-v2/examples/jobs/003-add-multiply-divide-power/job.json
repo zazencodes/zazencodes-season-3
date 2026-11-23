@@ -6,6 +6,7 @@
   "pr": 8,
   "pr_url": null,
   "branch": "factory/003-add-multiply-divide-power",
+  "parent": "main",
   "worktree": "<repo>/.worktrees/003-add-multiply-divide-power",
   "stage": "needs-human",
   "round": 3,

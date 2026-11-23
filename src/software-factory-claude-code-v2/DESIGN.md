@@ -31,17 +31,20 @@ skim a job on the dashboard and read the detail only where it matters.
 ```
 intake (fable)     → ACCEPT (scope possibly changed) | NEEDS-INFO | REJECT, posted as an issue comment
 route (script)     → reviewers + models from risk/surfaces via config.json
-worktree           → factory/<job-id> from origin/main
+                     + BASE: main or a pending factory branch to stack on (from pending.md)
+worktree           → factory/<job-id> from its parent, tracked by git-spice
 spec-writer (opus) → spec.md
-builder            → commits; first round pushes + opens draft PR "Closes #<n>"
+restack (script)   → before every build round: onto the parent's tip, or onto main once it merged
+builder            → commits; `gs branch submit` opens a draft PR "Closes #<n>" against the parent
 gate (script)      → checks.sh; FAIL → builder gets the log, no reviewers spawned
 reviewers (routed) → parallel, WAIT FOR ALL; CHANGES → builder → gate → reviewers (max rounds)
-approver (opus)    → APPROVE: sync origin/main, gate, gh pr merge
+approver (opus)    → APPROVE: ready; once the parent is main: sync origin/main, gate, gh pr merge
                      ESCALATE: PR ready, decision as PR comment, label factory:needs-human
 ```
 
-`stage` in `job.json` is one of `intake`, `needs-info`, `spec`, `build`,
-`gate`, `review`, `approve`, `merging`, `needs-human`, `merged`, `rejected`.
+`stage` in `job.json` is one of `intake`, `needs-info`, `parked`, `spec`,
+`build`, `gate`, `review`, `approve`, `ready`, `merging`, `needs-human`,
+`merged`, `rejected`.
 The legal moves are in `TRANSITIONS` at the top of `factory/bin/job`.
 
 ## Decisions
@@ -99,8 +102,28 @@ they read the diff for correctness, scope, security, UX and visual fit.
 **A PR per issue, merged through GitHub.** v1 merged locally, which broke when
 the main checkout was dirty or busy. v2 merges with `gh pr merge`, so branch
 protection, required checks and the PR history all apply, and your main
-checkout is never touched. Before merging, the branch is synced with `main` and
-gated again, because another job may have merged since it was tested.
+checkout is never touched except to fast-forward `main` when a stack moves
+(below). Before merging, the branch is synced with `main` and gated again,
+because another job may have merged since it was tested.
+
+**Jobs stack instead of colliding.** Three jobs at once often touch the same
+code, or one issue is a follow-up to another that hasn't merged yet. Branching
+both from `main` means a conflict at merge time, or a builder redoing work.
+So intake reads `pending.md`, a list of the unfinished factory branches and
+the files each has changed, and picks a `BASE`: `main`, or the factory branch
+this job builds on. Branches are stacked with
+[git-spice](https://abhinav.github.io/git-spice/): the job's worktree starts
+from its parent, the builder opens its PR against the parent with
+`gs branch submit`, and `factory/bin/job restack` rebases it onto the parent's
+tip before every build round, then onto `main` once the parent merges
+(`gs repo sync`, `gs branch onto main`). git-spice records each branch's fork
+point, so this works with squash merges too. A job stacked on one that isn't
+built yet is `parked`, holding no slot, until its parent reaches the gate. An
+approved stacked PR waits as `ready` and merges once everything below it has;
+an escalated PR blocks the stack above it until you merge it. Unrelated work
+always goes on `main`, so stacks stay short. `gs repo sync` fast-forwards
+`main` in your checkout, so the factory refuses to restack while that checkout
+has uncommitted changes to tracked files.
 
 **You approve by merging.** The approver merges what it would merge itself and
 escalates the rest with a specific question. An escalated PR is ready for
@@ -131,8 +154,9 @@ break this.
 - Issue text reaches agents as quoted data in `issue.md`, with comments only
   from the issue's author and the factory's operator. It is never part of a
   prompt. Intake, which reads it first, has no shell.
-- Agents push only `factory/*` branches. Only `factory/bin/job merge` merges,
-  through `gh pr merge`. The factory never deploys.
+- Agents push only their own `factory/*` branch, with `gs branch submit`.
+  Only `factory/bin/job merge` merges, through `gh pr merge`, and only a PR
+  that targets `main`. The factory never deploys.
 - One PR per issue; at most `max_rounds` build rounds per job before a human
   is asked.
 

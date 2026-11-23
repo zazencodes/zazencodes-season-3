@@ -3,13 +3,16 @@
 
 Usage:
   gate <job-id>            write round-N/checks.md; exit 0 on PASS, 1 on FAIL
+  gate <job-id> --restack  same, as round-N/restack-checks.md (job restack runs it)
   gate <job-id> --merge    same, as round-N/merge-checks.md (job merge runs it)
   gate --hook              builder SubagentStop hook: run the checks once, exit 2 on failure
 
 The gate runs the main checkout's factory/checks.sh inside the job's worktree,
 so a branch can't change the checks it is judged by. It also fails when the
 branch modifies or deletes a file matching config.json `protected_paths`
-(fnmatch patterns, where `*` also matches `/`). Adding new files is fine.
+(fnmatch patterns, where `*` also matches `/`). Adding new files is fine. The
+diff is taken against the job's parent (origin/<base>, or the factory branch the
+job is stacked on), so a stacked job is judged only by its own changes.
 """
 
 import fnmatch
@@ -38,9 +41,15 @@ def git(worktree, *args):
     return res.stdout
 
 
-def protected_changes(worktree):
+def parent_ref(job):
+    base = CONFIG["base_branch"]
+    parent = job.get("parent", base)
+    return f"origin/{base}" if parent == base else parent
+
+
+def protected_changes(worktree, parent):
     """Existing files under protected_paths that the branch modified or deleted."""
-    diff = git(worktree, "diff", "--name-status", f"origin/{CONFIG['base_branch']}...HEAD")
+    diff = git(worktree, "diff", "--name-status", f"{parent}...HEAD")
     hits = []
     for line in diff.splitlines():
         status, *paths = line.split("\t")
@@ -58,23 +67,24 @@ def run_checks(worktree):
     return res.returncode, res.stdout + res.stderr, int(time.monotonic() - start)
 
 
-def gate(job_id, merge):
+def gate(job_id, mode=None):
     job = json.loads((FACTORY / "jobs" / job_id / "job.json").read_text())
     worktree = job["worktree"]
     if job["round"] < 1:
         die(f"{job_id} hasn't started a build round")
     round_dir = FACTORY / "jobs" / job_id / f"round-{job['round']}"
     commit = git(worktree, "rev-parse", "HEAD").strip()
-    protected = protected_changes(worktree)
+    protected = protected_changes(worktree, parent_ref(job))
     code, log, seconds = run_checks(worktree)
     verdict = "PASS" if code == 0 and not protected else "FAIL"
-    name = "merge-checks" if merge else "checks"
+    name = f"{mode}-checks" if mode else "checks"
     (round_dir / f"{name}.log").write_text(log)
     tail = "\n".join(log.rstrip().splitlines()[-TAIL:])
     summary = [
         f"checks.sh {'passed' if code == 0 else f'failed with exit {code}'} in {seconds}s",
         f"Protected paths: {'changed: ' + ', '.join(protected) if protected else 'none changed'}",
-        f"Commit {commit[:7]}" + (", synced with the latest main before merging" if merge else ""),
+        f"Commit {commit[:7]}" + {None: "", "restack": f", after restacking onto {job.get('parent')}",
+                                  "merge": f", synced with the latest {CONFIG['base_branch']} before merging"}[mode],
     ]
     (round_dir / f"{name}.md").write_text(
         f"GATE: {verdict}\nCOMMIT: {commit}\n\n"
@@ -110,9 +120,9 @@ def main(argv):
     if argv == ["--hook"]:
         hook()
     elif len(argv) == 1 and not argv[0].startswith("-"):
-        gate(argv[0], merge=False)
-    elif len(argv) == 2 and argv[1] == "--merge":
-        gate(argv[0], merge=True)
+        gate(argv[0])
+    elif len(argv) == 2 and argv[1] in {"--restack", "--merge"}:
+        gate(argv[0], argv[1][2:])
     else:
         die(__doc__.strip())
 
