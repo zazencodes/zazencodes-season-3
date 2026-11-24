@@ -27,12 +27,11 @@ if ! git check-ignore -q .env.local; then
   exit 1
 fi
 
-# Create first: checkout --create could adopt an existing branch with the same name.
+# Create the branch, then pin it: a name that is already taken fails here.
 neon=(npx --yes neon@9.9.4)
 umask 077
-cp "$root/.neon" .neon
 "${neon[@]}" branches create --project-id "$project" --name "$branch" --no-secrets
-"${neon[@]}" checkout "$branch" --project-id "$project" --no-env-pull
+"${neon[@]}" link --project-id "$project" --branch "$branch" --no-env-pull --no-config
 
 pull=(--service postgres --env NEON_BRANCH)
 if [[ -f "$root/neon.ts" ]]; then
