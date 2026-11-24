@@ -18,12 +18,17 @@ project=$(node -e '
   console.log(projectId);
 ' "$root/.neon")
 
+if ! git -C "$root" check-ignore -q .env.local; then
+  echo 'Add .env.local to .gitignore and commit it first: database credentials are written there.' >&2
+  exit 1
+fi
+
 tree="$(dirname "$root")/$(basename "$root")-$branch"
 git -C "$root" worktree add -b "$branch" "$tree" HEAD
 cd "$tree"
 printf 'Worktree: %s\nTask branch: %s\n' "$tree" "$branch"
 if ! git check-ignore -q .env.local; then
-  echo 'The new worktree must ignore .env.local before pulling database credentials.' >&2
+  echo 'Commit the .env.local ignore rule first: the new worktree does not have it.' >&2
   exit 1
 fi
 
