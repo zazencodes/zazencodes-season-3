@@ -16,6 +16,7 @@ These are the Season 3 source folders currently in this repo. The published vide
 
 | Video | Watch | Source code |
 | --- | --- | --- |
+| [Build Your Always-On Local AI Content Machine with the Olares One](https://youtu.be/fL_4ZgTCI9k) | [![Build Your Always-On Local AI Content Machine with the Olares One](assets/thumbnails/olares-one-local-ai.png)](https://youtu.be/fL_4ZgTCI9k) | [`src/olares-one-local-ai`](src/olares-one-local-ai) |
 | [5 Token Saving Tools for Coding Agents: RTK, Ponytail, Headroom + More (Full Setup Guide)](https://youtu.be/Z4R8KfzaC5s) | [![5 Token Saving Tools for Coding Agents: RTK, Ponytail, Headroom + More (Full Setup Guide)](assets/thumbnails/token-savers.png)](https://youtu.be/Z4R8KfzaC5s) | [`src/token-savers`](src/token-savers) |
 | [Turn Your Hermes Agent Into a Software Factory](https://youtu.be/jSfK4VjDMEc) | [![Turn Your Hermes Agent Into a Software Factory](assets/thumbnails/hermes-software-factory.png)](https://youtu.be/jSfK4VjDMEc) | [`src/hermes-software-factory`](src/hermes-software-factory) |
 | [Build a Better Software Factory with Claude Code](https://youtu.be/RiaTyJ2POVo) | [![Build a Better Software Factory with Claude Code](assets/thumbnails/software-factory-claude-code-v2.png)](https://youtu.be/RiaTyJ2POVo) | [`src/software-factory-claude-code-v2`](src/software-factory-claude-code-v2) |
