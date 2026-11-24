@@ -18,16 +18,10 @@ Commit an ignore rule for `.env.local` so new worktrees inherit it. If your proj
 
 The installed folder contains `SKILL.md` and `scripts/start.sh`.
 
-## Give it a feature
+## Build your feature
 
-For example, imagine your personal project is a reading list that already saves book titles. Open an agent in that repo and paste:
+Replace the text in brackets with the change you want to make, then paste this prompt into your agent:
 
-> \branch-data Use the installed branch-data skill for this feature. Let me mark a book as finished and save the date I finished it. Start a local preview and give me its URL so I can try it.
+> Use the branch-data skill to build [feature you want to build]. When it’s ready, show me how to test it in the new worktree.
 
-The prompt names the skill in plain language so you can use it across agents. For that task the helper command could be:
-
-```sh
-bash .agents/skills/branch-data/scripts/start.sh finished-books
-```
-
-The helper starts the Git branch from your current commit and the Neon branch from the linked project’s default branch. The agent builds in the reported worktree using its own `.env.local`. You can open the preview, mark a book as finished and compare it with the original app before deciding whether to keep the change.
+The agent works in its own Git worktree, connected to its own Neon branch. Try the change there before deciding whether to keep it.
