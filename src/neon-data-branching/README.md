@@ -14,7 +14,7 @@ Commit an ignore rule for `.env.local` so new worktrees inherit it. If your proj
 
 ## Give your coding agent this install prompt
 
-> Install the branch-data skill from the public GitHub repo zazencodes/zazencodes-season-3. Copy the entire src/neon-data-branching/branch-data folder to .agents/skills/branch-data in this repo. Check that the script is present, this repo is linked to its Neon project, and Git ignores .env.local. Tell me when it’s ready.
+> Install the branch-data skill from the GitHub repo zazencodes/zazencodes-season-3. Copy the entire src/neon-data-branching/branch-data folder to .agents/skills/branch-data in this repo (or the proper folder for Claude, if you're using Claude Code). If this repo does not use Neon then let me know that I will not be able to use this skill unless we set that up.
 
 The installed folder contains `SKILL.md` and `scripts/start.sh`.
 
@@ -24,4 +24,18 @@ Replace the text in brackets with the change you want to make, then paste this p
 
 > Use the branch-data skill to build [feature you want to build]. When it’s ready, show me how to test it in the new worktree.
 
-The agent works in its own Git worktree, connected to its own Neon branch. Try the change there before deciding whether to keep it.
+You can also trigger the skill explicitly in the prompt with `$branch-data` or `/branch-data`.
+
+The agent works in its own Git worktree, connected to its own Neon branch. Try the change there before deciding whether to keep it. The worktree is a sibling folder of your repo, so your agent needs permission to write there and to reach the network.
+
+## Clean up
+
+When you are done with a feature, ask your agent to remove it, or run this from your repo with the feature’s name:
+
+```sh
+npx --yes neon@9.9.4 branches delete <feature> --project-id <your-project-id>
+git worktree remove --force ../<repo>-<feature>
+git branch -D <feature>
+```
+
+The Neon branch and everything written to it are deleted. Your default branch is untouched.
