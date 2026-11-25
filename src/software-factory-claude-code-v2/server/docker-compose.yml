@@ -1,0 +1,27 @@
+# docker compose up -d --build            the factory on port 8080
+# docker compose --profile tls up -d      plus Caddy with a certificate for $DOMAIN
+services:
+  factory:
+    build: .
+    init: true            # reaps agent processes a stopped run leaves behind
+    env_file: .env
+    restart: unless-stopped
+    volumes:
+      - factory-data:/data
+    ports:
+      - "127.0.0.1:8080:8080"
+
+  caddy:
+    profiles: [tls]
+    image: caddy:2
+    restart: unless-stopped
+    command: caddy reverse-proxy --from ${DOMAIN:-localhost} --to factory:8080
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy-data:/data
+
+volumes:
+  factory-data:
+  caddy-data:

@@ -269,6 +269,7 @@ def cost_usd(job):
     needle = f"Job folder: {job_dir(job['id'])}/"
     prices = CONFIG["prices_usd_per_mtok"]
     total = 0.0
+    unpriced = set()
     for path in transcripts_dir().glob("*/subagents/agent-*.jsonl"):
         with path.open() as f:
             first = f.readline()
@@ -286,7 +287,8 @@ def cost_usd(job):
             if tokens == 0:
                 continue
             if model not in prices:
-                die(f"no price for model {model} in factory/config.json prices_usd_per_mtok")
+                unpriced.add(model)  # a new model id must not stop every job
+                continue
             p = prices[model]
             split = u.get("cache_creation") or {}
             write_1h = split.get("ephemeral_1h_input_tokens", 0)
@@ -296,6 +298,9 @@ def cost_usd(job):
                       + write_5m * p["cache_write_5m"]
                       + write_1h * p["cache_write_1h"]
                       + u.get("cache_read_input_tokens", 0) * p["cache_read"]) / 1e6
+    if unpriced:
+        print(f"job: no price for {', '.join(sorted(unpriced))} in factory/config.json "
+              "prices_usd_per_mtok; its tokens aren't in the cost", file=sys.stderr)
     return round(total, 2)
 
 
